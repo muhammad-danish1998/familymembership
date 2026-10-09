@@ -474,6 +474,46 @@ export const members = {
     saveStore(store);
     return newMember;
   },
+
+  async listPending() {
+    await delay();
+    const store = getStore();
+    return store.members
+      .filter((m) => m.approval_status === 'pending')
+      .map((m) => {
+        const exec = store.executives.find((e) => e.id === m.submitted_by_executive_id);
+        return {
+          ...m,
+          submitted_by_executive_name: exec ? exec.name : m.submitted_by_executive_name || 'Executive',
+        };
+      });
+  },
+
+  async approveSubmission(id) {
+    await delay();
+    const store = getStore();
+    const m = store.members.find((item) => item.id === id);
+    if (!m) throw { code: 'VALIDATION', message: 'Member not found.' };
+
+    m.approval_status = 'approved';
+    m.status = 'active';
+    writeAudit(store, 'MEMBER_SUBMISSION_APPROVED', `Admin approved member registration for "${m.name}".`);
+    saveStore(store);
+    return m;
+  },
+
+  async rejectSubmission(id) {
+    await delay();
+    const store = getStore();
+    const m = store.members.find((item) => item.id === id);
+    if (!m) throw { code: 'VALIDATION', message: 'Member not found.' };
+
+    m.approval_status = 'rejected';
+    m.status = 'inactive';
+    writeAudit(store, 'MEMBER_SUBMISSION_REJECTED', `Admin rejected member registration for "${m.name}".`);
+    saveStore(store);
+    return m;
+  },
 };
 
 // -------------------------------------------------------------
@@ -801,6 +841,63 @@ export const executives = {
     writeAudit(store, 'EXECUTIVE_STATUS', `Set executive "${exec.name}" active status to ${exec.active}.`);
     saveStore(store);
     return exec;
+  },
+
+  async setPin(id, pin) {
+    await delay();
+    const store = getStore();
+    const exec = store.executives.find((e) => e.id === id);
+    if (!exec) throw { code: 'VALIDATION', message: 'Executive not found.' };
+    if (!pin || pin.length < 4 || pin.length > 8 || !/^\d+$/.test(pin)) {
+      throw { code: 'VALIDATION', message: 'PIN must be between 4 and 8 digits.' };
+    }
+    exec.pin = pin;
+    writeAudit(store, 'EXECUTIVE_PIN_SET', `Set PIN for executive "${exec.name}".`);
+    saveStore(store);
+    return { success: true };
+  },
+
+  async login(id, pin) {
+    await delay();
+    const store = getStore();
+    const exec = store.executives.find((e) => e.id === id);
+    if (!exec || !exec.active) throw { code: 'VALIDATION', message: 'Executive account not found or inactive.' };
+    if (exec.pin && exec.pin !== pin) {
+      throw { code: 'VALIDATION', message: 'Incorrect PIN.' };
+    }
+    const token = `exec-token-${exec.id}-${Date.now()}`;
+    return { token, executive: exec };
+  },
+
+  async submitMember(execId, pin, memberData) {
+    await delay();
+    const store = getStore();
+    const exec = store.executives.find((e) => e.id === execId);
+    if (!exec || !exec.active) throw { code: 'VALIDATION', message: 'Executive account not found or inactive.' };
+    if (exec.pin && exec.pin !== pin) {
+      throw { code: 'VALIDATION', message: 'Incorrect PIN.' };
+    }
+
+    const newMember = {
+      id: `mem-${Date.now()}`,
+      name: memberData.name.trim(),
+      father_name: memberData.father_name.trim(),
+      mobile: memberData.mobile.trim(),
+      cnic: memberData.cnic ? memberData.cnic.trim() : '',
+      address: memberData.address ? memberData.address.trim() : '',
+      join_date: memberData.join_date,
+      opening_balance: Number(memberData.opening_balance || 0),
+      status: 'inactive',
+      submitted_by_executive_id: exec.id,
+      submitted_by_executive_name: exec.name,
+      approval_status: 'pending',
+      coverage: { sons: 0, daughters: 0, wife: 0, father: 0, mother: 0, brothers: 0, sisters: 0, other: 0 },
+    };
+
+    store.members.push(newMember);
+    writeAudit(store, 'MEMBER_SUBMITTED_PENDING', `Executive "${exec.name}" submitted new member "${newMember.name}" for Admin approval.`);
+    saveStore(store);
+    return newMember;
   },
 };
 

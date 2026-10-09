@@ -7,7 +7,8 @@ import { ConfirmDialog } from '../../components/common/ConfirmDialog.jsx';
 import { DateDisplay } from '../../components/common/DateDisplay.jsx';
 import { MoneyDisplay } from '../../components/common/MoneyDisplay.jsx';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner.jsx';
-import { KeyRound, Lock, UserCheck, Download, History, Plus, Trash2 } from 'lucide-react';
+import { Dialog } from '../../components/common/Dialog.jsx';
+import { KeyRound, Lock, UserCheck, Download, History, Plus, Trash2, Copy, Link as LinkIcon, ShieldCheck } from 'lucide-react';
 
 export function AdminSettings() {
   const { t } = useI18n();
@@ -28,6 +29,9 @@ export function AdminSettings() {
   const [execList, setExecList] = useState([]);
   const [newExecName, setNewExecName] = useState('');
   const [execLoading, setExecLoading] = useState(false);
+  const [pinExecTarget, setPinExecTarget] = useState(null);
+  const [execPinValue, setExecPinValue] = useState('');
+  const [pinSubmitting, setPinSubmitting] = useState(false);
 
   // Audit Log state
   const [auditLogs, setAuditLogs] = useState([]);
@@ -112,6 +116,34 @@ export function AdminSettings() {
     } catch (err) {
       toast.error(err.message || 'Failed to toggle executive.');
     }
+  };
+
+  const handleSetExecPin = async (e) => {
+    e.preventDefault();
+    if (!pinExecTarget) return;
+    if (!execPinValue || execPinValue.length < 4 || execPinValue.length > 8) {
+      toast.error('PIN must be between 4 and 8 digits.');
+      return;
+    }
+
+    setPinSubmitting(true);
+    try {
+      await executives.setPin(pinExecTarget.id, execPinValue.trim());
+      toast.success(`PIN updated for executive "${pinExecTarget.name}".`);
+      setPinExecTarget(null);
+      setExecPinValue('');
+      fetchExecutives();
+    } catch (err) {
+      toast.error(err.message || 'Failed to set executive PIN.');
+    } finally {
+      setPinSubmitting(false);
+    }
+  };
+
+  const handleCopyExecLink = (exec) => {
+    const portalUrl = `${window.location.origin}/executive/${exec.id}`;
+    navigator.clipboard.writeText(portalUrl);
+    toast.success(`Portal link copied for ${exec.name}!`);
   };
 
   const downloadFile = (content, filename, type = 'text/csv') => {
@@ -280,22 +312,95 @@ export function AdminSettings() {
             ) : (
               <div className="divide-y divide-slate-100 dark:divide-slate-800 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden text-sm">
                 {execList.map((e) => (
-                  <div key={e.id} className="p-4 flex items-center justify-between">
+                  <div key={e.id} className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div>
-                      <span className="font-bold text-slate-900 dark:text-white block">{e.name}</span>
-                      <span className="text-xs text-slate-400">Total Collected Net: <MoneyDisplay amount={e.totalCollected} className="font-bold" /></span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-slate-900 dark:text-white">{e.name}</span>
+                        {e.pin || e.pin_hash ? (
+                          <span className="text-[10px] bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 px-2 py-0.5 rounded-full font-semibold border border-emerald-200 dark:border-emerald-800">
+                            PIN Configured
+                          </span>
+                        ) : (
+                          <span className="text-[10px] bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 px-2 py-0.5 rounded-full font-semibold border border-amber-200 dark:border-amber-800">
+                            No PIN Set
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-xs text-slate-400 block mt-0.5">
+                        Total Collected Net: <MoneyDisplay amount={e.totalCollected} className="font-bold" />
+                      </span>
                     </div>
-                    <Button
-                      variant={e.active ? 'outline' : 'ghost'}
-                      size="sm"
-                      onClick={() => handleToggleExec(e)}
-                    >
-                      {e.active ? 'Active' : 'Inactive (Archived)'}
-                    </Button>
+
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleCopyExecLink(e)}
+                        title="Copy portal link for this executive collector"
+                      >
+                        <Copy className="w-3.5 h-3.5" />
+                        Copy Link
+                      </Button>
+
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setPinExecTarget(e);
+                          setExecPinValue('');
+                        }}
+                      >
+                        <KeyRound className="w-3.5 h-3.5" />
+                        Set PIN
+                      </Button>
+
+                      <Button
+                        variant={e.active ? 'outline' : 'ghost'}
+                        size="sm"
+                        onClick={() => handleToggleExec(e)}
+                      >
+                        {e.active ? 'Active' : 'Inactive'}
+                      </Button>
+                    </div>
                   </div>
                 ))}
               </div>
             )}
+
+            {/* Set Executive PIN Dialog */}
+            <Dialog
+              isOpen={!!pinExecTarget}
+              onClose={() => setPinExecTarget(null)}
+              title={`Set Portal PIN — ${pinExecTarget?.name}`}
+            >
+              <form onSubmit={handleSetExecPin} className="space-y-4 py-2">
+                <p className="text-xs text-slate-500">
+                  Set a numeric PIN (4 to 8 digits) for <strong>{pinExecTarget?.name}</strong> to access their portal link and submit new members.
+                </p>
+
+                <div>
+                  <label className="block text-xs font-semibold mb-1">Executive PIN (4 - 8 digits)</label>
+                  <input
+                    type="password"
+                    maxLength={8}
+                    value={execPinValue}
+                    onChange={(e) => setExecPinValue(e.target.value)}
+                    placeholder="••••"
+                    className="w-full px-3 py-2 text-sm font-mono border border-slate-300 dark:border-slate-700 rounded-lg dark:bg-slate-800 text-center tracking-widest text-lg"
+                    required
+                  />
+                </div>
+
+                <div className="flex justify-end gap-2 pt-4 border-t border-slate-100 dark:border-slate-800">
+                  <Button variant="outline" type="button" onClick={() => setPinExecTarget(null)}>
+                    Cancel
+                  </Button>
+                  <Button variant="primary" type="submit" loading={pinSubmitting}>
+                    Save PIN
+                  </Button>
+                </div>
+              </form>
+            </Dialog>
           </div>
         )}
 

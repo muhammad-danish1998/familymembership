@@ -378,6 +378,37 @@ export const members = {
     const { data, error } = await supabase.rpc('find_duplicate_mobile', { p_mobile: mobile });
     if (error) throw new Error(error.message);
     return data;
+  },
+  listPending: async () => {
+    const { data: membersData, error } = await supabase
+      .from('members')
+      .select('*, executives!submitted_by_executive_id(name)')
+      .eq('approval_status', 'pending')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      const { data: mData, error: mErr } = await supabase
+        .from('members')
+        .select('*')
+        .eq('approval_status', 'pending');
+      if (mErr) throw new Error(mErr.message);
+      return (mData || []).map((m) => ({ ...m, submitted_by_executive_name: 'Executive' }));
+    }
+
+    return (membersData || []).map((m) => ({
+      ...m,
+      submitted_by_executive_name: m.executives?.name || 'Executive',
+    }));
+  },
+  approveSubmission: async (id) => {
+    const targetId = extractId(id);
+    const { error } = await supabase.rpc('approve_member_submission', { p_member_id: targetId });
+    if (error) throw new Error(error.message);
+  },
+  rejectSubmission: async (id) => {
+    const targetId = extractId(id);
+    const { error } = await supabase.rpc('reject_member_submission', { p_member_id: targetId });
+    if (error) throw new Error(error.message);
   }
 };
 
@@ -579,6 +610,41 @@ export const executives = {
     const targetId = extractId(id);
     const { error } = await supabase.rpc('set_executive_active', { p_id: targetId, p_active: active });
     if (error) throw new Error(error.message);
+  },
+  setPin: async (id, pin) => {
+    const targetId = extractId(id);
+    const { error } = await supabase.rpc('set_executive_pin', { p_id: targetId, p_pin: String(pin) });
+    if (error) throw new Error(error.message);
+    return { success: true };
+  },
+  login: async (id, pin) => {
+    const targetId = extractId(id);
+    const { data, error } = await supabase.rpc('verify_executive_pin', { p_id: targetId, p_pin: String(pin) });
+    if (error) throw new Error(error.message);
+    const res = Array.isArray(data) ? data[0] : data;
+    if (!res || !res.valid) {
+      throw new Error('Incorrect Executive PIN.');
+    }
+    const token = `exec-token-${targetId}-${Date.now()}`;
+    sessionStorage.setItem('exec_token', token);
+    return { token, executive: { id: targetId, name: res.executive_name } };
+  },
+  submitMember: async (execId, pin, memberData) => {
+    const targetId = extractId(execId);
+    const { data, error } = await supabase.rpc('executive_submit_member', {
+      p_executive_id: targetId,
+      p_pin: String(pin),
+      p_name: memberData.name,
+      p_father_name: memberData.father_name,
+      p_mobile: memberData.mobile,
+      p_cnic: memberData.cnic || null,
+      p_address: memberData.address || null,
+      p_join_date: memberData.join_date,
+      p_opening_balance: Number(memberData.opening_balance || 0)
+    });
+    if (error) throw new Error(error.message);
+    const memberId = extractId(data);
+    return { id: memberId, ...memberData, approval_status: 'pending' };
   }
 };
 

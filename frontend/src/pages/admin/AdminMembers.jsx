@@ -13,7 +13,7 @@ import { LoadingSpinner } from '../../components/common/LoadingSpinner.jsx';
 import { EmptyState } from '../../components/common/EmptyState.jsx';
 import { formatMobile, formatCoverageSummary } from '../../lib/format.js';
 import { COVERAGE_KEYS } from '../../constants/index.js';
-import { UserPlus, Edit, UserCheck, UserX, Heart, ArrowLeft, ArrowRight, Trash2 } from 'lucide-react';
+import { UserPlus, Edit, UserCheck, UserX, Heart, ArrowLeft, ArrowRight, Trash2, CheckCircle, XCircle, Clock } from 'lucide-react';
 
 export function AdminMembers() {
   const { t, isRtl } = useI18n();
@@ -21,6 +21,7 @@ export function AdminMembers() {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [items, setItems] = useState([]);
+  const [pendingItems, setPendingItems] = useState([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState('all');
@@ -80,9 +81,43 @@ export function AdminMembers() {
     }
   };
 
+  const fetchPending = async () => {
+    try {
+      if (membersService.listPending) {
+        const pList = await membersService.listPending();
+        setPendingItems(pList || []);
+      }
+    } catch (err) {
+      console.warn('Could not load pending submissions:', err.message);
+    }
+  };
+
   useEffect(() => {
     fetchMembers();
+    fetchPending();
   }, [search, statusFilter, page]);
+
+  const handleApproveSubmission = async (id, name) => {
+    try {
+      await membersService.approveSubmission(id);
+      toast.success(`Member submission for "${name}" approved!`);
+      fetchPending();
+      fetchMembers();
+    } catch (err) {
+      toast.error(err.message || 'Failed to approve submission.');
+    }
+  };
+
+  const handleRejectSubmission = async (id, name) => {
+    try {
+      await membersService.rejectSubmission(id);
+      toast.success(`Member submission for "${name}" rejected.`);
+      fetchPending();
+      fetchMembers();
+    } catch (err) {
+      toast.error(err.message || 'Failed to reject submission.');
+    }
+  };
 
   const handleAddSubmit = async (e, confirmDup = false) => {
     if (e) e.preventDefault();
@@ -249,6 +284,70 @@ export function AdminMembers() {
         </Button>
       </div>
 
+      {/* Pending Submissions Queue */}
+      {pendingItems.length > 0 && (
+        <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-2xl p-5 shadow-sm space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Clock className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+              <h2 className="text-base font-bold text-amber-950 dark:text-amber-200">
+                Pending Member Approvals ({pendingItems.length})
+              </h2>
+            </div>
+            <span className="text-xs text-amber-800 dark:text-amber-300 font-medium">
+              Submitted by Executives for your review
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {pendingItems.map((p) => (
+              <div
+                key={p.id}
+                className="bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-800/80 rounded-xl p-4 flex flex-col justify-between gap-3 shadow-xs"
+              >
+                <div>
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-slate-900 dark:text-white text-base">{p.name}</span>
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700">
+                      Pending
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    S/o {p.father_name} · Mobile: <span className="font-mono text-slate-700 dark:text-slate-300">{p.mobile}</span>
+                  </p>
+                  <div className="mt-2 text-xs text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/60 p-2 rounded-lg space-y-1">
+                    <div>Submitted by: <strong className="text-amber-600 dark:text-amber-400">{p.submitted_by_executive_name || 'Executive'}</strong></div>
+                    <div>Join Date: <DateDisplay date={p.join_date} /></div>
+                    {Number(p.opening_balance || 0) > 0 && <div>Opening Dues: Rs. {p.opening_balance}</div>}
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40"
+                    onClick={() => handleRejectSubmission(p.id, p.name)}
+                  >
+                    <XCircle className="w-4 h-4" />
+                    Reject
+                  </Button>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    className="bg-emerald-600 hover:bg-emerald-500"
+                    onClick={() => handleApproveSubmission(p.id, p.name)}
+                  >
+                    <CheckCircle className="w-4 h-4" />
+                    Approve Member
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Filters & Search */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800">
         <div className="flex items-center gap-2 overflow-x-auto w-full sm:w-auto">
@@ -295,6 +394,12 @@ export function AdminMembers() {
                     <td className="px-6 py-4">
                       <div className="font-semibold text-slate-900 dark:text-white">{m.name}</div>
                       <div className="text-xs text-slate-500">S/o {m.father_name} · Joined <DateDisplay date={m.join_date} /></div>
+                      {(m.submitted_by_executive_name || m.submitted_by_executive_id) && (
+                        <div className="inline-flex items-center gap-1 text-[11px] text-amber-700 dark:text-amber-400 mt-1 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded-md border border-amber-200 dark:border-amber-900">
+                          <CheckCircle className="w-3 h-3 text-amber-500 shrink-0" />
+                          <span>Submitted by {m.submitted_by_executive_name || 'Executive'} · Approved by Admin</span>
+                        </div>
+                      )}
                     </td>
                     <td className="px-6 py-4 font-mono text-slate-600 dark:text-slate-400">{formatMobile(m.mobile)}</td>
                     <td className="px-6 py-4 text-xs text-slate-500">

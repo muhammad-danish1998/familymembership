@@ -6,6 +6,7 @@ import { FamilyGuard } from './FamilyGuard.jsx';
 
 // Pages
 import { FamilyPage } from '../pages/family/FamilyPage.jsx';
+import { ExecutivePortal } from '../pages/executive/ExecutivePortal.jsx';
 import { AdminLogin } from '../pages/admin/AdminLogin.jsx';
 import { AdminDashboard } from '../pages/admin/AdminDashboard.jsx';
 import { AdminMembers } from '../pages/admin/AdminMembers.jsx';
@@ -22,6 +23,7 @@ export function AppRoutes() {
 
         {/* Family PIN Gate & Read-Only Pages */}
         <Route path="/family" element={<FamilyPage />} />
+        <Route path="/executive/:id" element={<ExecutivePortal />} />
         <Route
           path="/family/member/:id"
           element={

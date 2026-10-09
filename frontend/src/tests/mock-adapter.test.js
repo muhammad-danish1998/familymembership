@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cases, family, members, payments } from '../services/mock/index.js';
+import { cases, family, members, payments, executives } from '../services/mock/index.js';
 
 describe('Phase A Mock Service Adapter Tests', () => {
   it('Family PIN login succeeds with correct PIN (123456)', async () => {
@@ -74,5 +74,34 @@ describe('Phase A Mock Service Adapter Tests', () => {
     });
     const updatedMember = await members.get('mem-2');
     expect(updatedMember.status).toBe('deceased');
+  });
+
+  it('Executive portal PIN set, login, member submission & admin approval workflow', async () => {
+    // 1. Executive set PIN
+    await executives.setPin('exec-1', '5555');
+
+    // 2. Executive login with correct PIN
+    const loginRes = await executives.login('exec-1', '5555');
+    expect(loginRes.token).toContain('exec-token-exec-1');
+
+    // 3. Executive submit member
+    const submitted = await executives.submitMember('exec-1', '5555', {
+      name: 'Executive Test Member',
+      father_name: 'Exec Father',
+      mobile: '03009998877',
+      join_date: '2026-01-01',
+      opening_balance: 500,
+    });
+    expect(submitted.approval_status).toBe('pending');
+
+    // 4. Admin list pending
+    const pendingList = await members.listPending();
+    const foundPending = pendingList.find((p) => p.id === submitted.id);
+    expect(foundPending).toBeDefined();
+
+    // 5. Admin approve submission
+    const approved = await members.approveSubmission(submitted.id);
+    expect(approved.approval_status).toBe('approved');
+    expect(approved.status).toBe('active');
   });
 });
