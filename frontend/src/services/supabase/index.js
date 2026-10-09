@@ -660,25 +660,20 @@ export const executives = {
   },
   setPin: async (id, pin) => {
     const targetId = extractId(id);
-    try {
-      const { error } = await supabase.rpc('set_executive_pin', { p_id: targetId, p_pin: String(pin) });
-      if (!error) return { success: true };
-      if (error.message?.includes('Could not find the function')) {
-        const { error: directErr } = await supabase
-          .from('executives')
-          .update({ pin_hash: String(pin) })
-          .eq('id', targetId);
-        if (!directErr) return { success: true };
-      }
-      throw new Error(error.message);
-    } catch (err) {
-      if (err.message?.includes('Could not find the function')) {
-        throw new Error(
-          'Supabase migration missing! Please run migration "20261010000000_executive_portal_and_approvals.sql" in your Supabase SQL Editor.'
-        );
-      }
-      throw err;
-    }
+    const { error } = await supabase.rpc('set_executive_pin', { p_id: targetId, p_pin: String(pin) });
+    if (!error) return { success: true };
+
+    // Direct fallback if RPC is missing
+    const { error: directErr } = await supabase
+      .from('executives')
+      .update({ pin_hash: String(pin) })
+      .eq('id', targetId);
+
+    if (!directErr) return { success: true };
+
+    throw new Error(
+      'Database setup needed! Please run FULL_SUPABASE_SETUP.sql in your Supabase SQL Editor.'
+    );
   },
   login: async (id, pin) => {
     const targetId = extractId(id);
