@@ -5,6 +5,34 @@ Read this file fully before changing anything. If code and this file disagree, s
 
 **Work is split between five specialised agents (see §6).** Find out which agent you are, load its skills, and stay inside its area.
 
+---
+
+## START HERE (instructions for the AI agent)
+
+**The build has two phases, in this order: Phase A = complete the frontend. Phase B = build the Supabase backend and connect it.**
+Do not start Phase B until the Phase A gate (§7) has passed.
+
+When the owner says "start" or "read and do accordingly":
+1. Read this whole file, then open `prototype/family-fund-prototype.html` (the behavior reference).
+2. Reply **once**, in at most 12 lines: what you understood, the two phases, the first milestone, and any real blocker. Then begin **Phase A, milestone A0** without waiting for a reply.
+3. Work milestone by milestone (§7). After each milestone post a 3 to 6 line progress note, then continue.
+4. Stop and ask the owner **only** when: (a) two rules conflict, or a rule conflicts with the prototype; (b) a decision marked **[Open]** blocks you; (c) you need something only a human can provide (an account, a key, a software install); (d) a gate in §7 asks for sign-off.
+5. When Phase A passes its gate, post a **"Phase A complete"** report (how to run it, demo logins, what was verified, known gaps), then continue into Phase B.
+6. If you can run only **one agent session**, do the work in role passes (Supabase, Frontend, Test, Review, Security), label each pass, and for Review and Security re-read the final diff with fresh eyes. Tell the owner that an independent review by a separate session is still recommended.
+
+### Defaults you may rely on without asking
+| Topic | Default | Status |
+|---|---|---|
+| Family PIN length | 6 to 8 digits (`PIN_MIN_LENGTH=6`, `PIN_MAX_LENGTH=8` in `src/constants/`) | [Assumed] |
+| Demo logins (mock mode only) | admin email `admin@example.test`, password `admin123`; family PIN `123456` | [Assumed] |
+| Max deficit | Rs. 70,000 (one death support), stored in `settings`, Admin cannot change it in v1 | [Decided] |
+| Family page death cases | totals only, no list of cases | [Assumed] |
+| Payment reference notes on family page | visible (as in the prototype) | [Assumed] |
+| Export | CSV and JSON backup in v1. Restore exists in the mock/demo; ask the owner before building restore for production | [Assumed] |
+| Hosting | not chosen. Do not set up deployment | [Open] |
+
+Never ask the owner for the Supabase service-role key. Never paste secrets into chat, code or commits.
+
 Status legend used below:
 - **[Decided]** confirmed by the owner. Do not change without asking.
 - **[Assumed]** reasonable default taken during planning. Keep, but flag if it blocks you.
@@ -43,7 +71,7 @@ Owner: Muhammad Danish (full-stack developer, Pakistan). Users are non-technical
 Keep dependencies minimal. Before adding any library, check whether the platform or an existing dependency already does the job, and ask the owner.
 
 Environment variables:
-- Frontend (`frontend/.env.example`): `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` only.
+- Frontend (`frontend/.env.example`): `VITE_DATA_SOURCE` (`mock` or `supabase`), `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` only. Phase A runs with `VITE_DATA_SOURCE=mock` and needs no Supabase account. Production must use `supabase` (§5.6).
 - Edge Function secrets (set with `supabase secrets set`, never committed): `FAMILY_TOKEN_SECRET`. The service-role key is injected into Edge Functions by Supabase and must **never** appear in frontend code, `.env` files in `frontend/`, logs, or commits.
 
 ---
@@ -69,7 +97,11 @@ family-fund/
 │       ├── components/
 │       │   ├── common/        # Button, Dialog, MoneyDisplay, DateDisplay, EmptyState, ...
 │       │   ├── members/  payments/  death/  layout/
-│       ├── services/          # ALL Supabase calls live here (see §8)
+│       ├── services/          # the only data layer (see §5.5, §5.6, §8)
+│       │   ├── index.js       # exports the active adapter from VITE_DATA_SOURCE
+│       │   ├── mock/          # Phase A adapter (localStorage + fictional seed). Demo/dev/tests only
+│       │   └── supabase/      # Phase B adapter (same contract as mock)
+│       ├── constants/         # PIN_MIN_LENGTH, PIN_MAX_LENGTH, COVERAGE_KEYS, RELATIONS, ...
 │       ├── lib/               # money.js, dates.js, format.js (pure functions)
 │       ├── i18n/              # en.js, ur.js
 │       ├── hooks/
@@ -218,6 +250,36 @@ Revoke `INSERT/UPDATE/DELETE` on money tables from `authenticated` and `anon`. A
 - Uses the service role **inside the function only**, selects an explicit column list (never `select *`), and never returns CNIC/address.
 - Server-side search and pagination (about 25 per page). The browser must never download all members and payments.
 
+### 5.5 Service contract (the seam between frontend and backend)
+
+Components call only these services. Phase A implements them in `services/mock/`; Phase B implements the **same names, arguments and result shapes** in `services/supabase/`. If you must change the contract, change it in both adapters and in this table, and tell the owner.
+Every function returns a Promise. Failures reject with `{ code, message }`; the UI maps `code` to a translated message.
+
+| Service | Functions |
+|---|---|
+| `auth` | `signIn(email, password)`, `signOut()`, `getSession()`, `changePassword(current, next)` |
+| `family` (PIN, read only) | `login(pin)` → token, `getSummary(token)`, `listMembers(token, {search, page, pageSize})`, `getMember(token, id)` |
+| `fund` (admin) | `getSummary()` (collected, paidOut, balance, counts, shortfall, perMemberShare) |
+| `members` (admin) | `list({search, status, page, pageSize})`, `get(id)` (with payments, year view, coverage), `searchActive(q)`, `add(data, {confirmDuplicate})`, `edit(id, data, {confirmDuplicate})`, `setStatus(id, status)`, `saveCoverage(id, counts)`, `findDuplicateMobile(mobile, exceptId)`, `continueFamily(oldId, data, {dues: 'carry' \| 'waive'})` |
+| `payments` (admin) | `list({page})`, `add({memberId, amount, date, executiveId, note})`, `reverse(paymentId, reason)`, `receipt(paymentId)` |
+| `cases` (admin) | `list()`, `register(data)`, `verify(id)`, `release(id, {reason})` |
+| `executives` (admin) | `list()`, `add(name)`, `setActive(id, active)` |
+| `settings` (admin) | `get()`, `changeFamilyPin(newPin)` |
+| `audit` (admin) | `list({page})` |
+| `exporter` (admin) | `membersCsv()`, `paymentsCsv()`, `backupJson()`, `restore(json)` (**[Open]** for production) |
+
+Error codes (use exactly these): `NOT_AUTHORIZED`, `VALIDATION`, `DUPLICATE_MOBILE`, `AMOUNT_INVALID`, `AMOUNT_EXCEEDS_MAX`, `DATE_INVALID`, `ALREADY_REVERSED`, `DUPLICATE_CASE`, `REASON_REQUIRED`, `DEFICIT_LIMIT`, `WRONG_PIN`, `LOCKED`, `NETWORK`, `UNKNOWN`.
+
+### 5.6 Mock adapter rules (Phase A)
+
+- `services/index.js` selects the adapter from `VITE_DATA_SOURCE`. Components import only from `services/index.js`.
+- The mock keeps data in `localStorage` (key `ff_mock_v1`), seeded with **fictional** data ported from the prototype (15 members, executives, payments including one reversal, two death cases). Reuse the prototype's scenarios so numbers can be compared.
+- The mock must **enforce the same rules** as the future database (BR-8 to BR-28), reusing `lib/money.js`. It must return the same error codes. It exists so the UI is built against real behavior, not happy-path stubs.
+- Add a small artificial delay (about 150 ms) so loading states are exercised.
+- When `VITE_DATA_SOURCE=mock`, show a visible banner "Demo data mode". The mock's PIN, password and storage are **fake**. Never treat them as security.
+- **A production build must refuse to run with the mock.** `npm run build` (mode `production`) must fail when `VITE_DATA_SOURCE !== 'supabase'`. Provide `npm run build:demo` (mode `demo`) for building with the mock.
+- After Phase B passes, keep `services/mock/` only for tests and demos. It must not be reachable in a production bundle.
+
 ---
 
 ## 6. Agent team
@@ -238,6 +300,10 @@ If your tool cannot load the named skill, follow the checklist written under tha
 | **Security Agent** | Audits access control, secrets, PIN, data exposure | `security-code-quality-review` (security part) | nothing (read-only) | everything |
 
 Read-only agents may **run** commands (tests, linters, `supabase test db`) but must not change files. They deliver a written report.
+
+**Which agents work in which phase:**
+- **Phase A (frontend):** Frontend Agent, Test Agent, Code Review Agent. The Frontend Agent owns `frontend/src/services/**`, including the mock adapter.
+- **Phase B (backend):** Supabase Agent, Test Agent, Code Review Agent, Security Agent. The Frontend Agent returns only to write `services/supabase/**` and to fix findings.
 
 ### 6.2 Frontend Agent
 **Mission:** build the screens and behavior of the prototype in React, in English and Urdu (RTL).
@@ -284,18 +350,25 @@ Checklist (run it on every release candidate and after any change to auth, RLS, 
 8. **Dependencies:** run `npm audit` and flag high/critical issues.
 - Report each finding with severity, how to reproduce, impact and fix. Do not edit files. Do not sign off while any Blocker or High finding is open.
 
-### 6.7 Working order for every feature
+### 6.7 Working order
 
-1. **Supabase Agent**: migration, RPC, RLS, seed.
-2. **Test Agent**: database and logic tests from the `BR-n` rules (write them first when possible).
-3. **Frontend Agent**: UI that calls the services/RPCs.
-4. **Test Agent**: UI and end-to-end tests for the feature.
-5. **Code Review Agent**: review report. Owning agents fix Blocker/High findings.
-6. **Security Agent**: audit report. Owning agents fix Blocker/High findings.
+**Phase A, for each milestone:**
+1. **Frontend Agent**: build the screens and the mock adapter behavior for the milestone.
+2. **Test Agent**: Vitest tests for the rules the milestone touches (write them early when possible).
+3. **Frontend Agent**: fix failures.
+At the end of Phase A: **Code Review Agent** reviews the whole frontend; the Frontend Agent fixes Blocker and High findings.
+
+**Phase B, for each milestone:**
+1. **Supabase Agent**: migration, RPC, RLS, seed (or Edge Function).
+2. **Test Agent**: pgTAP and function tests from the `BR-n` rules (write them first when possible).
+3. **Frontend Agent**: connect `services/supabase/**` to the new pieces.
+4. **Test Agent**: integration and end-to-end tests.
+5. **Code Review Agent**: review report. Owning agents fix Blocker and High findings.
+6. **Security Agent**: audit report. Owning agents fix Blocker and High findings.
 7. **Owner sign-off.**
 
-Gate: a feature is not "done" until steps 5 and 6 report **no open Blocker or High** findings and step 4 is green.
-Small pure-UI changes may skip step 1, but any change that touches money, access or the schema must go through all steps.
+Gate: nothing is "done" until the Code Review Agent (and, in Phase B, the Security Agent) report **no open Blocker or High** findings and the tests are green.
+Any change that touches money, access or the schema goes through every step.
 
 ### 6.8 Rules for all agents
 
@@ -317,22 +390,45 @@ Small pure-UI changes may skip step 1, but any change that touches money, access
 0. **Know your agent role** (§6) and stay inside it.
 1. **Understand.** Read the relevant rule IDs in §4 and the matching behavior in the prototype.
 2. **Plan small.** One logical feature per change. State the plan before large changes.
-3. **Database first** for anything involving money: migration → RPC/view → pgTAP test → then UI.
+3. **Phase A:** build against the service contract (§5.5) and the mock adapter. **Phase B:** database first for anything involving money: migration → RPC/view → pgTAP test → adapter → UI check.
 4. **Implement** using existing patterns. Reuse components and services.
 5. **Verify** (§10). Report what you ran and the result.
 6. **Review the diff** for secrets, unrelated edits, missing audit entries and missing translations, then hand off to the next agent (§6.7).
 
-Recommended build order:
-1. Scaffold (`frontend/`, `supabase/`), CI-free local setup, `README.md`.
-2. Schema, constraints, indexes, RLS, `settings`, seed data.
-3. Calculation views + `frontend/src/lib/money.js` with tests against the fixtures in §4.2.
-4. Admin auth + protected routes + admin dashboard.
-5. Members (add, edit, search, archive, coverage).
-6. Payments (RPC, validation, reversal, executives, receipt).
-7. Death support (workflow, deficit rule, continue family).
-8. Family page (Edge Function, PIN, token, read-only UI).
-9. Settings (PIN, password), export (CSV/JSON), restore **[Open: confirm restore is wanted in production]**.
-10. Urdu/RTL pass, mobile pass, accessibility pass, security review.
+### Build plan
+
+**PHASE A: COMPLETE THE FRONTEND (mock data, no Supabase needed)**
+
+| Milestone | Scope | Done when |
+|---|---|---|
+| **A0 Scaffold** | `frontend/` with Vite + React + JavaScript, Tailwind, React Router, ESLint, Vitest. Folder structure from §3, `constants/`, `.env.example`, `README.md` (how to run, demo logins). | `npm install`, `npm run dev`, `npm run build:demo`, `npm test`, `npm run lint` all work. `npm run build` (production) must fail with a clear message while the data source is `mock` |
+| **A1 Logic core** | `lib/money.js`, `dates.js`, `format.js`; mock adapter and seed implementing the contract (§5.5, §5.6); i18n setup (English and Urdu, RTL switch) | Vitest passes all fixtures in §4.2, §4.6 and the cases in §10 |
+| **A2 Shell** | Layout, header with language switch, routes and guards, common components (`Button`, `Dialog`, `ConfirmDialog`, `MoneyDisplay`, `DateDisplay`, `EmptyState`, `LoadingSpinner`, `Toast`, `SearchInput`, `MemberPicker`), demo-mode banner | Navigation and guards work; components are keyboard accessible |
+| **A3 Family view** | PIN gate with lockout, fund summary (collected, paid out, balance, shortfall and low-balance banners), stats, member list with search and pagination, member detail (history, year view, coverage), "Read only" badge | Matches the prototype's family page in English and Urdu, at 375 px and desktop |
+| **A4 Admin** | **A4a** login, dashboard. **A4b** members: add, edit, archive/restore, coverage, continue family, duplicate-mobile warning. **A4c** payments: picker, form, caps, reversal, executives, receipt with copy and WhatsApp. **A4d** death support: register, verify, release with deficit rules (BR-25 to BR-27). **A4e** settings: family PIN, admin password, executives, export (CSV/JSON), activity log | Every admin flow in the prototype works against the mock, with the same numbers |
+| **A5 Polish and gate** | Complete Urdu, mobile pass, accessibility pass, empty/loading/error states, Code Review Agent pass | **Phase A gate** below |
+
+**Phase A gate (all must be true):**
+1. Every screen and flow of the prototype exists and behaves the same in the mock.
+2. Vitest suite passes, lint passes, `npm run build:demo` passes, and `npm run build` correctly refuses to build with the mock.
+3. No console errors; no sideways page scroll at 375 px; Urdu RTL looks correct.
+4. No hard-coded user-facing strings; no money formula outside `lib/money.js`; no component imports anything except `services/index.js` for data.
+5. Code Review Agent reports no open Blocker or High findings.
+6. A "Phase A complete" report is posted (§START HERE, item 5).
+
+**PHASE B: SUPABASE BACKEND (local Supabase first)**
+
+Develop against **local** Supabase (`supabase start`, needs Docker). Linking a remote Supabase project is a **human step**: ask the owner, never ask for the service-role key. If Docker or the Supabase CLI is missing, stop and tell the owner exactly what to install.
+
+| Milestone | Scope | Done when |
+|---|---|---|
+| **B1 Schema** | Migrations for tables, constraints, indexes, RLS, `settings`, `admins`, fictional seed | `supabase db reset` runs clean; `anon` reads nothing |
+| **B2 Logic in the database** | `member_summary` and `fund_summary` views; all RPC functions from §5.2 with validation and audit rows | Every rule BR-8 to BR-33 that belongs in the database is enforced |
+| **B3 Database tests** | pgTAP for constraints, RPCs and RLS (Test Agent) | `supabase test db` green |
+| **B4 Family API** | Edge Function `family-view` (PIN hash, throttling, signed token, explicit columns) | Wrong PIN, lockout, token expiry, no CNIC/address in responses |
+| **B5 Connect** | `services/supabase/**` implementing §5.5; real Supabase Auth for the Admin; switch `VITE_DATA_SOURCE=supabase` | Same numbers as the mock for the same scenarios; all Phase A flows work |
+| **B6 Verify** | Integration and end-to-end tests on local Supabase; Code Review Agent; Security Agent (§6.6 checklist) | No open Blocker or High findings |
+| **B7 Handover** | README: setup, migrations, secrets, deployment notes. **Hosting is [Open]: ask the owner.** Restore for production only if the owner confirms | Owner sign-off |
 
 ### Commands
 Commands become valid only after the scaffold exists. **Define these scripts in `frontend/package.json` when scaffolding and keep this table in sync.**
@@ -340,8 +436,9 @@ Commands become valid only after the scaffold exists. **Define these scripts in 
 | Purpose | Command | Status |
 |---|---|---|
 | Install frontend deps | `cd frontend && npm install` | after scaffold |
-| Dev server | `npm run dev` | planned script |
-| Production build | `npm run build` | planned script |
+| Dev server (mock data) | `npm run dev` with `VITE_DATA_SOURCE=mock` | planned script |
+| Production build (requires `VITE_DATA_SOURCE=supabase`) | `npm run build` | planned script |
+| Demo build (mock allowed, not for production) | `npm run build:demo` | planned script |
 | Unit tests | `npm test` (Vitest) | planned script |
 | Lint | `npm run lint` | planned script |
 | Start local Supabase | `supabase start` | Supabase CLI |
@@ -383,7 +480,7 @@ Anything not listed here (CI, deployment commands, hosting) is **unknown**. Do n
 
 ## 10. Testing and verification
 
-A task is **done** only when all of these hold:
+A task is **done** only when all of the items that apply to its phase hold. Items 1, 4, 5, 6 and the Code Review part of item 7 apply from **Phase A**. Items 2 and 3 and the Security part of item 7 apply from **Phase B**. During Phase A, also apply the frontend items of the Security checklist (§6.6, item 6) and the secrets rule.
 
 1. Unit tests pass for `money.js`, including the fixtures in §4.2 and these cases:
    amount 6000 ok · 0, −1, 1.5 rejected · 14,000 paid on 12,000 due → max additional 4,000 · reversal nets to zero · July joiner guide = 1,000 · carried-over dues counted as behind immediately.
@@ -410,7 +507,10 @@ Report in your final message: what changed, which checks you ran, results, and a
 - Do not use `user_metadata` for authorization.
 - Do not use `using (true)` policies or disable RLS to "make it work".
 - Do not use floats for money.
-- Do not ship or import code from `prototype/`.
+- Do not ship or import code from `prototype/`. Port its logic into `lib/` and `services/mock/`; never import the HTML file.
+- Do not start Phase B before the Phase A gate has passed.
+- Do not let the mock adapter be reachable in a production build.
+- Do not call Supabase directly from components or pages, in either phase.
 - Do not add executives' login, SMS/WhatsApp automation, online payments or multi-fund support without an explicit owner request.
 - Do not edit files outside your agent's area (§6.1), and do not let an agent review or approve its own work.
 - Do not make major architecture or business decisions silently. Explain and ask first.
@@ -425,15 +525,17 @@ Report in your final message: what changed, which checks you ran, results, and a
 
 ---
 
-## 13. Open decisions (ask the owner before building)
+## 13. Open decisions
 
-1. **Hosting/deployment target** and domain.
-2. **Production PIN length** (recommended 6–8 digits).
-3. Should the family page also list **death cases** (names and amounts), or only totals?
-4. Is **backup restore** wanted in production, or export only?
-5. Should CNIC become **unique** later (mobile stays non-unique)?
-6. Should reference notes on payments be visible to the family, or Admin-only?
-7. Exact **max deficit** (default Rs. 70,000, one death) and whether the Admin may raise it.
+Defaults for most of these are in the START HERE table. Ask the owner only when the decision blocks a milestone.
+
+1. **Hosting/deployment target and domain.** [Open] Needed at B7. Do not set up deployment before.
+2. **Production PIN length.** [Assumed] 6 to 8 digits.
+3. **Family page: list death cases or totals only?** [Assumed] totals only.
+4. **Backup restore in production, or export only?** [Open] decide before building restore in Phase B.
+5. **Should CNIC become unique later?** [Open] (mobile stays non-unique).
+6. **Payment reference notes visible to the family?** [Assumed] yes, as in the prototype. The owner may switch them to Admin-only.
+7. **Max deficit.** [Decided] Rs. 70,000 by default, stored in `settings`. Whether the Admin may change it later is [Open].
 
 ---
 
