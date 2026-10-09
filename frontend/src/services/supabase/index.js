@@ -76,17 +76,29 @@ export const family = {
         return data;
       }
     } catch {
-      // Fall back to direct PIN verification if Edge Function is not deployed
+      // Fall back if Edge Function is not deployed
     }
 
-    // Direct PIN check fallback (Edge Function fallback)
+    // Call RPC function verify_family_pin (SECURITY DEFINER)
+    const { data: rpcRes, error: rpcErr } = await supabase.rpc('verify_family_pin', { p_pin: String(pin) });
+    if (!rpcErr && rpcRes) {
+      const res = Array.isArray(rpcRes) ? rpcRes[0] : rpcRes;
+      if (res && res.valid) {
+        const token = `family-token-v${res.pin_version || 1}-${Date.now()}`;
+        sessionStorage.setItem('family_token', token);
+        return { token, pinVersion: res.pin_version || 1 };
+      }
+      throw new Error('Incorrect PIN. Please try again.');
+    }
+
+    // Direct PIN check fallback (if RPC is not yet created in user DB)
     const { data: access, error: accessErr } = await supabase
       .from('family_access')
       .select('pin_version')
       .eq('id', 1)
-      .single();
+      .maybeSingle();
 
-    if (accessErr) {
+    if (accessErr || !access) {
       throw new Error('Incorrect PIN or database connection error');
     }
 

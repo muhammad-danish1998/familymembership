@@ -645,3 +645,35 @@ AS $$
     FROM public.members m
     WHERE m.mobile = TRIM(p_mobile);
 $$;
+
+-- 16. Verify Family PIN RPC (BR-29)
+CREATE OR REPLACE FUNCTION public.verify_family_pin(p_pin TEXT)
+RETURNS TABLE (valid BOOLEAN, pin_version INT)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+DECLARE
+    v_hash TEXT;
+    v_version INT;
+    v_match BOOLEAN := false;
+BEGIN
+    SELECT pin_hash, pin_version INTO v_hash, v_version
+    FROM public.family_access
+    WHERE id = 1;
+
+    IF v_hash IS NULL THEN
+        RETURN QUERY SELECT false, 1;
+        RETURN;
+    END IF;
+
+    IF v_hash = public.crypt(p_pin, v_hash) THEN
+        v_match := true;
+    END IF;
+
+    RETURN QUERY SELECT v_match, COALESCE(v_version, 1);
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.verify_family_pin(TEXT) TO anon, authenticated;
+
