@@ -1,7 +1,10 @@
 import * as mockAdapter from './mock/index.js';
 import * as supabaseAdapter from './supabase/index.js';
 
-const dataSource = import.meta.env.VITE_DATA_SOURCE || 'supabase';
+const dataSource =
+  import.meta.env.VITE_DATA_SOURCE ||
+  import.meta.env.DATA_SOURCE ||
+  'supabase';
 
 const adapter = dataSource === 'mock' ? mockAdapter : supabaseAdapter;
 
