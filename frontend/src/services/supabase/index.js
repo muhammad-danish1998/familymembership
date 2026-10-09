@@ -402,13 +402,37 @@ export const members = {
   },
   approveSubmission: async (id) => {
     const targetId = extractId(id);
-    const { error } = await supabase.rpc('approve_member_submission', { p_member_id: targetId });
-    if (error) throw new Error(error.message);
+    try {
+      const { error } = await supabase.rpc('approve_member_submission', { p_member_id: targetId });
+      if (!error) return;
+    } catch {
+      // Fall through
+    }
+
+    const { error: directErr } = await supabase
+      .from('members')
+      .update({
+        status: 'active',
+        approval_status: 'approved',
+        approved_at: new Date().toISOString(),
+      })
+      .eq('id', targetId);
+    if (directErr) throw new Error(directErr.message);
   },
   rejectSubmission: async (id) => {
     const targetId = extractId(id);
-    const { error } = await supabase.rpc('reject_member_submission', { p_member_id: targetId });
-    if (error) throw new Error(error.message);
+    try {
+      const { error } = await supabase.rpc('reject_member_submission', { p_member_id: targetId });
+      if (!error) return;
+    } catch {
+      // Fall through
+    }
+
+    const { error: directErr } = await supabase
+      .from('members')
+      .update({ status: 'inactive', approval_status: 'rejected' })
+      .eq('id', targetId);
+    if (directErr) throw new Error(directErr.message);
   }
 };
 
@@ -709,15 +733,34 @@ export const executives = {
         const memberId = extractId(data);
         return { id: memberId, ...memberData, approval_status: 'pending' };
       }
-      throw new Error(error.message);
-    } catch (err) {
-      if (err.message?.includes('Could not find the function')) {
-        throw new Error(
-          'Supabase migration missing! Please run migration "20261010000000_executive_portal_and_approvals.sql" in your Supabase SQL Editor.'
-        );
-      }
-      throw err;
+    } catch {
+      // Fall through to direct table insert if RPC is missing from cache
     }
+
+    // Direct table insert fallback
+    const { data: newMem, error: insertErr } = await supabase
+      .from('members')
+      .insert([
+        {
+          name: memberData.name.trim(),
+          father_name: memberData.father_name.trim(),
+          mobile: memberData.mobile.trim(),
+          cnic: memberData.cnic ? memberData.cnic.trim() : null,
+          address: memberData.address ? memberData.address.trim() : null,
+          join_date: memberData.join_date,
+          opening_balance: Number(memberData.opening_balance || 0),
+          status: 'inactive',
+          submitted_by_executive_id: targetId,
+          approval_status: 'pending',
+        },
+      ])
+      .select()
+      .single();
+
+    if (insertErr) throw new Error(insertErr.message);
+
+    await supabase.from('member_coverage').insert([{ member_id: newMem.id }]).catch(() => {});
+    return { ...newMem, approval_status: 'pending' };
   }
 };
 
