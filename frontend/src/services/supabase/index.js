@@ -218,7 +218,23 @@ export const members = {
     const { data, error } = await query.order('name', { ascending: true });
     if (error) throw new Error(error.message);
 
-    let result = data || [];
+    const { data: paymentsList } = await supabase.from('payments').select('*');
+
+    let result = (data || []).map((m) => {
+      const mPayments = (paymentsList || []).filter((p) => p.member_id === m.id);
+      const summary = calculateMemberSummary(m, mPayments);
+      return {
+        ...m,
+        coverage: m.member_coverage || {},
+        summary,
+        paid: summary.paid,
+        remaining: summary.remaining,
+        isFullyPaid: summary.isFullyPaid,
+        behindBy: summary.behindBy,
+        isBehind: summary.isBehind,
+      };
+    });
+
     if (search.trim()) {
       const q = search.toLowerCase();
       result = result.filter(
@@ -245,7 +261,18 @@ export const members = {
       console.warn('Supabase searchActive query warning:', error.message);
       return [];
     }
-    let result = data || [];
+    const { data: paymentsList } = await supabase.from('payments').select('*');
+    let result = (data || []).map((m) => {
+      const mPayments = (paymentsList || []).filter((p) => p.member_id === m.id);
+      const summary = calculateMemberSummary(m, mPayments);
+      return {
+        ...m,
+        summary,
+        paid: summary.paid,
+        remaining: summary.remaining,
+      };
+    });
+
     if (query.trim()) {
       const searchTerm = query.toLowerCase();
       result = result.filter(
@@ -258,9 +285,19 @@ export const members = {
     return result;
   },
   getById: async (id) => {
-    const { data, error } = await supabase.from('members').select('*, member_coverage(*)').eq('id', id).single();
-    if (error) throw new Error(error.message);
-    return data;
+    const { data: m, error } = await supabase.from('members').select('*, member_coverage(*)').eq('id', id).single();
+    if (error || !m) throw new Error(error?.message || 'Member not found');
+
+    const { data: mPayments } = await supabase.from('payments').select('*').eq('member_id', id);
+    const summary = calculateMemberSummary(m, mPayments || []);
+
+    return {
+      ...m,
+      coverage: m.member_coverage || {},
+      summary,
+      paid: summary.paid,
+      remaining: summary.remaining,
+    };
   },
   get: async (id) => {
     return members.getById(id);
