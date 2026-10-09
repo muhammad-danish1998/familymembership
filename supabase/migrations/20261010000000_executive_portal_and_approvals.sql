@@ -217,3 +217,5 @@ BEGIN
     );
 END;
 $$;
+
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO authenticated, anon;

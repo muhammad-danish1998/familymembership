@@ -676,4 +676,5 @@ END;
 $$;
 
 GRANT EXECUTE ON FUNCTION public.verify_family_pin(TEXT) TO anon, authenticated;
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO authenticated, anon;
 

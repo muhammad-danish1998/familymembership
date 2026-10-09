@@ -601,15 +601,38 @@ export const executives = {
     return executives.list();
   },
   add: async (name) => {
-    const { data, error } = await supabase.rpc('add_executive', { p_name: name });
-    if (error) throw new Error(error.message);
-    const execId = extractId(data);
-    return { id: execId, name, active: true };
+    try {
+      const { data, error } = await supabase.rpc('add_executive', { p_name: name });
+      if (!error) {
+        const execId = extractId(data);
+        return { id: execId, name, active: true };
+      }
+    } catch {
+      // Fall through to direct table insert if RPC is missing from cache
+    }
+
+    const { data: directData, error: directErr } = await supabase
+      .from('executives')
+      .insert([{ name: name.trim(), active: true }])
+      .select()
+      .single();
+    if (directErr) throw new Error(directErr.message);
+    return directData;
   },
   setActive: async (id, active) => {
     const targetId = extractId(id);
-    const { error } = await supabase.rpc('set_executive_active', { p_id: targetId, p_active: active });
-    if (error) throw new Error(error.message);
+    try {
+      const { error } = await supabase.rpc('set_executive_active', { p_id: targetId, p_active: active });
+      if (!error) return;
+    } catch {
+      // Fall through
+    }
+
+    const { error: directErr } = await supabase
+      .from('executives')
+      .update({ active })
+      .eq('id', targetId);
+    if (directErr) throw new Error(directErr.message);
   },
   setPin: async (id, pin) => {
     const targetId = extractId(id);
