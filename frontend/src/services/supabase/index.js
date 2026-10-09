@@ -1,5 +1,5 @@
 import { supabase } from './client.js';
-import { calculateMemberSummary, calculateYearView } from '../../lib/money.js';
+import { calculateMemberSummary, calculateYearView, calculateFundSummary } from '../../lib/money.js';
 import { generateWhatsAppLink, formatMoney } from '../../lib/format.js';
 import { formatDate } from '../../lib/dates.js';
 
@@ -198,26 +198,18 @@ export const family = {
 
 export const fund = {
   getSummary: async () => {
-    const { data: payments, error: pErr } = await supabase.from('payments').select('amount');
+    const { data: payments, error: pErr } = await supabase.from('payments').select('*');
     if (pErr) throw new Error(pErr.message);
 
-    const { data: cases, error: cErr } = await supabase.from('death_cases').select('amount, status');
+    const { data: cases, error: cErr } = await supabase.from('death_cases').select('*');
     if (cErr) throw new Error(cErr.message);
 
-    const { data: activeMembers, error: mErr } = await supabase.from('members').select('id').eq('status', 'active');
+    const { data: membersList, error: mErr } = await supabase.from('members').select('*');
     if (mErr) throw new Error(mErr.message);
 
-    const collected = (payments || []).reduce((acc, p) => acc + p.amount, 0);
-    const paidOut = (cases || []).filter(c => c.status === 'paid').reduce((acc, c) => acc + c.amount, 0);
-    const balance = collected - paidOut;
+    const { data: settingsData } = await supabase.from('settings').select('*').eq('id', 1).maybeSingle();
 
-    return {
-      collected,
-      paid_out: paidOut,
-      balance,
-      active_members_count: (activeMembers || []).length,
-      death_cases_supported: (cases || []).filter(c => c.status === 'paid').length
-    };
+    return calculateFundSummary(payments || [], cases || [], membersList || [], settingsData || {});
   }
 };
 
