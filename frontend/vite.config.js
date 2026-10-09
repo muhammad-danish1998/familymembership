@@ -5,7 +5,7 @@ import tailwindcss from '@tailwindcss/vite';
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), tailwindcss()],
-  envPrefix: ['VITE_', 'SUPABASE_', 'DATA_'],
+  envPrefix: ['VITE_', 'SUPABASE_', 'DATA_', 'NEXT_PUBLIC_'],
   test: {
     globals: true,
     environment: 'jsdom',
