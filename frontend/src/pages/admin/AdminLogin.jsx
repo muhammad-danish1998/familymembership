@@ -10,8 +10,8 @@ export function AdminLogin() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [email, setEmail] = useState('admin@example.test');
-  const [password, setPassword] = useState('admin123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -52,6 +52,7 @@ export function AdminLogin() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                placeholder="admin@example.com"
                 className="w-full pl-9 pr-4 py-2.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 required
               />
@@ -68,6 +69,7 @@ export function AdminLogin() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
                 className="w-full pl-9 pr-4 py-2.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 required
               />
@@ -81,12 +83,6 @@ export function AdminLogin() {
             Sign In to Dashboard
           </Button>
         </form>
-
-        <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl text-xs text-slate-500 space-y-1">
-          <p className="font-semibold text-slate-700 dark:text-slate-300">Demo Admin Credentials:</p>
-          <p>Email: <code className="text-emerald-600 font-mono">admin@example.test</code></p>
-          <p>Password: <code className="text-emerald-600 font-mono">admin123</code></p>
-        </div>
       </div>
     </div>
   );
