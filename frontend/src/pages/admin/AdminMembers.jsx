@@ -415,102 +415,173 @@ export function AdminMembers() {
         ) : items.length === 0 ? (
           <EmptyState title="No members found" description="Try clearing your search filters or add a new member." />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left rtl:text-right">
-              <thead className="bg-slate-50 dark:bg-slate-800 text-xs text-slate-500 uppercase font-semibold border-b border-slate-100 dark:border-slate-800">
-                <tr>
-                  <th className="px-6 py-3">{t('memberName')}</th>
-                  <th className="px-6 py-3">{t('mobile')}</th>
-                  <th className="px-6 py-3">Coverage & Address</th>
-                  <th className="px-6 py-3">{t('status')}</th>
-                  <th className="px-6 py-3">{t('paid')}</th>
-                  <th className="px-6 py-3">{t('remaining')}</th>
-                  <th className="px-6 py-3 text-right rtl:text-left">{t('actions')}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {items.map((m) => (
-                  <tr key={m.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="font-semibold text-slate-900 dark:text-white">{m.name}</div>
-                      <div className="text-xs text-slate-500">S/o {m.father_name} · Joined <DateDisplay date={m.join_date} /></div>
-                      {(() => {
-                        const execName = m.submitted_by_executive_name || (m.submitted_by_executive_id ? 'Executive' : null);
-                        if (!execName) return null;
-                        const color = getExecutiveColor(execName);
-                        const isPending = m.approval_status === 'pending';
+          <div>
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-sm text-left rtl:text-right">
+                <thead className="bg-slate-50 dark:bg-slate-800 text-xs text-slate-500 uppercase font-semibold border-b border-slate-100 dark:border-slate-800">
+                  <tr>
+                    <th className="px-6 py-3">{t('memberName')}</th>
+                    <th className="px-6 py-3">{t('mobile')}</th>
+                    <th className="px-6 py-3">Coverage & Address</th>
+                    <th className="px-6 py-3">{t('status')}</th>
+                    <th className="px-6 py-3">{t('paid')}</th>
+                    <th className="px-6 py-3">{t('remaining')}</th>
+                    <th className="px-6 py-3 text-right rtl:text-left">{t('actions')}</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                  {items.map((m) => (
+                    <tr key={m.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="font-semibold text-slate-900 dark:text-white">{m.name}</div>
+                        <div className="text-xs text-slate-500">S/o {m.father_name} · Joined <DateDisplay date={m.join_date} /></div>
+                        {(() => {
+                          const execName = m.submitted_by_executive_name || (m.submitted_by_executive_id ? 'Executive' : null);
+                          if (!execName) return null;
+                          const color = getExecutiveColor(execName);
+                          const isPending = m.approval_status === 'pending';
 
-                        return (
-                          <div className={`inline-flex items-center gap-1.5 text-[11px] font-bold mt-1.5 px-2.5 py-0.5 rounded-full border ${color.bg} ${color.text} ${color.border}`}>
-                            <span className={`w-1.5 h-1.5 rounded-full ${color.badge}`} />
-                            <span>
-                              {isPending ? `⏳ Pending Approval · Entered by: ${execName}` : `Entered by: ${execName}`}
-                            </span>
-                          </div>
-                        );
-                      })()}
-                    </td>
-                    <td className="px-6 py-4 font-mono text-slate-600 dark:text-slate-400">{formatMobile(m.mobile)}</td>
-                    <td className="px-6 py-4 text-xs text-slate-500">
-                      <div className="font-medium text-emerald-700 dark:text-emerald-400">{formatCoverageSummary(m.coverage)}</div>
-                      <div className="truncate max-w-xs">{m.address || '—'}</div>
-                    </td>
-                    <td className="px-6 py-4">
+                          return (
+                            <div className={`inline-flex items-center gap-1.5 text-[11px] font-bold mt-1.5 px-2.5 py-0.5 rounded-full border ${color.bg} ${color.text} ${color.border}`}>
+                              <span className={`w-1.5 h-1.5 rounded-full ${color.badge}`} />
+                              <span>
+                                {isPending ? `⏳ Pending Approval · Entered by: ${execName}` : `Entered by: ${execName}`}
+                              </span>
+                            </div>
+                          );
+                        })()}
+                      </td>
+                      <td className="px-6 py-4 font-mono text-slate-600 dark:text-slate-400">{formatMobile(m.mobile)}</td>
+                      <td className="px-6 py-4 text-xs text-slate-500">
+                        <div className="font-medium text-emerald-700 dark:text-emerald-400">{formatCoverageSummary(m.coverage)}</div>
+                        <div className="truncate max-w-xs">{m.address || '—'}</div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                          m.status === 'active' ? 'bg-emerald-100 text-emerald-800' : m.status === 'deceased' ? 'bg-rose-100 text-rose-800' : 'bg-slate-100 text-slate-700'
+                        }`}>
+                          {t(m.status)}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 font-medium text-emerald-600"><MoneyDisplay amount={m.summary?.paid} /></td>
+                      <td className="px-6 py-4 font-medium text-slate-700 dark:text-slate-300"><MoneyDisplay amount={m.summary?.remaining} /></td>
+                      <td className="px-6 py-4 text-right rtl:text-left space-x-1 rtl:space-x-reverse">
+                        <Button variant="ghost" size="sm" onClick={() => openEdit(m)} title="Edit Member">
+                          <Edit className="w-4 h-4 text-slate-500" />
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => openCoverage(m)} title="Dependents Coverage">
+                          <Heart className="w-4 h-4 text-rose-500" />
+                        </Button>
+                        {m.status === 'deceased' && !m.continued_by && (
+                          <Button variant="outline" size="sm" onClick={() => openContinue(m)}>
+                            Continue Family
+                          </Button>
+                        )}
+                        {m.status === 'active' && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleToggleStatus(m)}
+                            title="Deactivate / Archive Member"
+                          >
+                            <UserX className="w-4 h-4 text-slate-400" />
+                          </Button>
+                        )}
+                        {m.status === 'inactive' && (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleToggleStatus(m)}
+                              title="Restore Member"
+                            >
+                              <UserCheck className="w-4 h-4 text-emerald-600" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setDeleteMemberConfirm(m)}
+                              title="Delete Member"
+                            >
+                              <Trash2 className="w-4 h-4 text-rose-600" />
+                            </Button>
+                          </>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Native Card View */}
+            <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800">
+              {items.map((m) => {
+                const execName = m.submitted_by_executive_name || (m.submitted_by_executive_id ? 'Executive' : null);
+                const color = execName ? getExecutiveColor(execName) : null;
+                const isPending = m.approval_status === 'pending';
+
+                return (
+                  <div key={m.id} className="p-4 space-y-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <h4 className="font-bold text-base text-slate-900 dark:text-white">{m.name}</h4>
+                        <p className="text-xs text-slate-500">S/o {m.father_name} · <span className="font-mono">{formatMobile(m.mobile)}</span></p>
+                      </div>
+
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${
                         m.status === 'active' ? 'bg-emerald-100 text-emerald-800' : m.status === 'deceased' ? 'bg-rose-100 text-rose-800' : 'bg-slate-100 text-slate-700'
                       }`}>
                         {t(m.status)}
                       </span>
-                    </td>
-                    <td className="px-6 py-4 font-medium text-emerald-600"><MoneyDisplay amount={m.summary?.paid} /></td>
-                    <td className="px-6 py-4 font-medium text-slate-700 dark:text-slate-300"><MoneyDisplay amount={m.summary?.remaining} /></td>
-                    <td className="px-6 py-4 text-right rtl:text-left space-x-1 rtl:space-x-reverse">
-                      <Button variant="ghost" size="sm" onClick={() => openEdit(m)} title="Edit Member">
-                        <Edit className="w-4 h-4 text-slate-500" />
+                    </div>
+
+                    {execName && (
+                      <div>
+                        <span className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${color.bg} ${color.text} ${color.border}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${color.badge}`} />
+                          <span>{isPending ? `⏳ Pending Approval · ${execName}` : `Entered by: ${execName}`}</span>
+                        </span>
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-2 gap-2 p-2.5 bg-slate-50 dark:bg-slate-800/60 rounded-xl text-xs">
+                      <div>
+                        <span className="text-slate-400 block">{t('paid')}</span>
+                        <MoneyDisplay amount={m.summary?.paid} className="font-bold text-emerald-600 text-sm" />
+                      </div>
+                      <div>
+                        <span className="text-slate-400 block">{t('remaining')}</span>
+                        <MoneyDisplay amount={m.summary?.remaining} className="font-bold text-slate-800 dark:text-slate-200 text-sm" />
+                      </div>
+                    </div>
+
+                    {/* Actions Grid for Mobile */}
+                    <div className="flex items-center gap-2 pt-1">
+                      <Button variant="outline" size="sm" className="flex-1 font-semibold" onClick={() => openEdit(m)}>
+                        <Edit className="w-3.5 h-3.5 mr-1" />
+                        Edit
                       </Button>
-                      <Button variant="ghost" size="sm" onClick={() => openCoverage(m)} title="Dependents Coverage">
-                        <Heart className="w-4 h-4 text-rose-500" />
+                      <Button variant="outline" size="sm" className="flex-1 font-semibold text-rose-600 border-rose-200" onClick={() => openCoverage(m)}>
+                        <Heart className="w-3.5 h-3.5 mr-1" />
+                        Dependents
                       </Button>
-                      {m.status === 'deceased' && !m.continued_by && (
-                        <Button variant="outline" size="sm" onClick={() => openContinue(m)}>
-                          Continue Family
-                        </Button>
-                      )}
                       {m.status === 'active' && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleToggleStatus(m)}
-                          title="Deactivate / Archive Member"
-                        >
+                        <Button variant="ghost" size="sm" onClick={() => handleToggleStatus(m)}>
                           <UserX className="w-4 h-4 text-slate-400" />
                         </Button>
                       )}
                       {m.status === 'inactive' && (
-                        <>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleToggleStatus(m)}
-                            title="Restore Member"
-                          >
-                            <UserCheck className="w-4 h-4 text-emerald-600" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setDeleteMemberConfirm(m)}
-                            title="Delete Member"
-                          >
-                            <Trash2 className="w-4 h-4 text-rose-600" />
-                          </Button>
-                        </>
+                        <Button variant="ghost" size="sm" onClick={() => handleToggleStatus(m)}>
+                          <UserCheck className="w-4 h-4 text-emerald-600" />
+                        </Button>
                       )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
 

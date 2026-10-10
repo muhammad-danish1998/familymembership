@@ -253,115 +253,194 @@ export function FamilyPage() {
         ) : members.length === 0 ? (
           <EmptyState title="No members found" description="No registered members match your search criteria." />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left rtl:text-right">
-              <thead className="bg-slate-50 dark:bg-slate-800/50 text-xs text-slate-500 uppercase font-semibold border-b border-slate-100 dark:border-slate-800">
-                <tr>
-                  <th className="px-6 py-3">{t('memberName')}</th>
-                  <th className="px-6 py-3">{t('fatherName')}</th>
-                  <th className="px-6 py-3">{t('mobile')}</th>
-                  <th className="px-6 py-3">{t('status')}</th>
-                  <th className="px-6 py-3">{t('enteredBy')}</th>
-                  <th className="px-6 py-3">{t('paid')}</th>
-                  <th className="px-6 py-3">{t('remaining')}</th>
-                  <th className="px-6 py-3 text-right rtl:text-left">{t('actions')}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {members.map((m) => {
-                  const isUnapproved = m.approval_status === 'pending' || m.approval_status === 'rejected';
-                  return (
-                    <tr
-                      key={m.id}
-                      className={`transition-colors ${
-                        isUnapproved
-                          ? 'bg-rose-50/70 dark:bg-rose-950/30 hover:bg-rose-100/70 dark:hover:bg-rose-900/40 border-l-4 border-l-rose-500 dark:border-l-rose-500'
-                          : 'hover:bg-slate-50/80 dark:hover:bg-slate-800/40'
-                      }`}
+          <div>
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-sm text-left rtl:text-right">
+                <thead className="bg-slate-50 dark:bg-slate-800/50 text-xs text-slate-500 uppercase font-semibold border-b border-slate-100 dark:border-slate-800">
+                  <tr>
+                    <th className="px-6 py-3">{t('memberName')}</th>
+                    <th className="px-6 py-3">{t('fatherName')}</th>
+                    <th className="px-6 py-3">{t('mobile')}</th>
+                    <th className="px-6 py-3">{t('status')}</th>
+                    <th className="px-6 py-3">{t('enteredBy')}</th>
+                    <th className="px-6 py-3">{t('paid')}</th>
+                    <th className="px-6 py-3">{t('remaining')}</th>
+                    <th className="px-6 py-3 text-right rtl:text-left">{t('actions')}</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                  {members.map((m) => {
+                    const isUnapproved = m.approval_status === 'pending' || m.approval_status === 'rejected';
+                    return (
+                      <tr
+                        key={m.id}
+                        className={`transition-colors ${
+                          isUnapproved
+                            ? 'bg-rose-50/70 dark:bg-rose-950/30 hover:bg-rose-100/70 dark:hover:bg-rose-900/40 border-l-4 border-l-rose-500 dark:border-l-rose-500'
+                            : 'hover:bg-slate-50/80 dark:hover:bg-slate-800/40'
+                        }`}
+                      >
+                        <td className="px-6 py-4 font-semibold text-slate-900 dark:text-white">{m.name}</td>
+                        <td className="px-6 py-4 text-slate-600 dark:text-slate-400">{m.father_name}</td>
+                        <td className="px-6 py-4 font-mono text-slate-600 dark:text-slate-400">{formatMobile(m.mobile)}</td>
+                        <td className="px-6 py-4">
+                          {m.status === 'deceased' ? (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300">
+                              {t('deceased')}
+                            </span>
+                          ) : m.isFullyPaid ? (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                              Fully paid
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                              Partial
+                            </span>
+                          )}
+                          {m.isBehind && (
+                            <span className="ml-2 rtl:mr-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-200 text-amber-900 dark:bg-amber-900 dark:text-amber-200">
+                              Behind <MoneyDisplay amount={m.behindBy} className="ml-1" />
+                            </span>
+                          )}
+                        </td>
+
+                        {/* Entry Source & Admin Approval Status */}
+                        <td className="px-6 py-4">
+                          {isUnapproved ? (
+                            <div className="flex flex-col gap-1 items-start">
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-rose-600 text-white dark:bg-rose-600 dark:text-white border border-rose-700 animate-pulse shadow-xs">
+                                <AlertTriangle className="w-3.5 h-3.5 text-white shrink-0" />
+                                {t('notApprovedByAdmin')}
+                              </span>
+                              <span className="text-[11px] font-bold text-rose-700 dark:text-rose-300 pl-0.5">
+                                {m.submitted_by_executive_name
+                                  ? t('enteredByExecutive', { name: m.submitted_by_executive_name })
+                                  : t('enteredByAdmin')}
+                              </span>
+                            </div>
+                          ) : m.submitted_by_executive_name ? (
+                            <div className="flex flex-col gap-0.5 items-start">
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                                {t('approvedByAdmin')}
+                              </span>
+                              <span className="text-[11px] text-slate-500 dark:text-slate-400 pl-0.5">
+                                {t('enteredByExecutive', { name: m.submitted_by_executive_name })}
+                              </span>
+                            </div>
+                          ) : (
+                            <div className="flex flex-col gap-0.5 items-start">
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                                <UserCheck className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                                {t('enteredByAdmin')}
+                              </span>
+                              <span className="text-[10px] text-emerald-600 dark:text-emerald-400 pl-0.5 font-medium">
+                                ✓ {t('approvedByAdmin')}
+                              </span>
+                            </div>
+                          )}
+                        </td>
+
+                        <td className="px-6 py-4"><MoneyDisplay amount={m.paid} className="font-medium text-emerald-600" /></td>
+                        <td className="px-6 py-4">
+                          {m.status === 'deceased' ? (
+                            <span className="text-slate-400 font-semibold">—</span>
+                          ) : (
+                            <MoneyDisplay amount={m.remaining} className="font-medium text-slate-700 dark:text-slate-300" />
+                          )}
+                        </td>
+                        <td className="px-6 py-4 text-right rtl:text-left">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => navigate(`/family/member/${m.id}`)}
+                          >
+                            Details
+                          </Button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Native Card View */}
+            <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800">
+              {members.map((m) => {
+                const isUnapproved = m.approval_status === 'pending' || m.approval_status === 'rejected';
+                return (
+                  <div
+                    key={m.id}
+                    className={`p-4 space-y-3 transition-colors ${
+                      isUnapproved
+                        ? 'bg-rose-50/80 dark:bg-rose-950/40 border-l-4 border-l-rose-500'
+                        : 'hover:bg-slate-50/80 dark:hover:bg-slate-800/40'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <h4 className="font-bold text-base text-slate-900 dark:text-white">{m.name}</h4>
+                        <p className="text-xs text-slate-500">S/O {m.father_name} · <span className="font-mono">{formatMobile(m.mobile)}</span></p>
+                      </div>
+
+                      {/* Member Status Badge */}
+                      {m.status === 'deceased' ? (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300">
+                          Deceased
+                        </span>
+                      ) : m.isFullyPaid ? (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                          Fully paid
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                          Partial
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Entry Source & Unapproved Danger Banner */}
+                    <div>
+                      {isUnapproved ? (
+                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-extrabold bg-rose-600 text-white animate-pulse">
+                          <AlertTriangle className="w-4 h-4 text-white" />
+                          <span>⚠️ {t('notApprovedByAdmin')} ({m.submitted_by_executive_name ? t('enteredByExecutive', { name: m.submitted_by_executive_name }) : t('enteredByAdmin')})</span>
+                        </div>
+                      ) : (
+                        <p className="text-xs text-slate-500">
+                          {m.submitted_by_executive_name ? t('enteredByExecutive', { name: m.submitted_by_executive_name }) : t('enteredByAdmin')}
+                          {' · '}
+                          <span className="text-emerald-600 font-semibold">✓ {t('approvedByAdmin')}</span>
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Financial Summary */}
+                    <div className="grid grid-cols-2 gap-2 p-2.5 bg-slate-50 dark:bg-slate-800/60 rounded-xl text-xs">
+                      <div>
+                        <span className="text-slate-400 block">{t('paid')}</span>
+                        <MoneyDisplay amount={m.paid} className="font-bold text-emerald-600 text-sm" />
+                      </div>
+                      <div>
+                        <span className="text-slate-400 block">{t('remaining')}</span>
+                        <MoneyDisplay amount={m.remaining} className="font-bold text-slate-800 dark:text-slate-200 text-sm" />
+                      </div>
+                    </div>
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full font-bold"
+                      onClick={() => navigate(`/family/member/${m.id}`)}
                     >
-                      <td className="px-6 py-4 font-semibold text-slate-900 dark:text-white">{m.name}</td>
-                      <td className="px-6 py-4 text-slate-600 dark:text-slate-400">{m.father_name}</td>
-                      <td className="px-6 py-4 font-mono text-slate-600 dark:text-slate-400">{formatMobile(m.mobile)}</td>
-                      <td className="px-6 py-4">
-                        {m.status === 'deceased' ? (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300">
-                            {t('deceased')}
-                          </span>
-                        ) : m.isFullyPaid ? (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-                            Fully paid
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
-                            Partial
-                          </span>
-                        )}
-                        {m.isBehind && (
-                          <span className="ml-2 rtl:mr-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-200 text-amber-900 dark:bg-amber-900 dark:text-amber-200">
-                            Behind <MoneyDisplay amount={m.behindBy} className="ml-1" />
-                          </span>
-                        )}
-                      </td>
-
-                      {/* Entry Source & Admin Approval Status */}
-                      <td className="px-6 py-4">
-                        {isUnapproved ? (
-                          <div className="flex flex-col gap-1 items-start">
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-rose-600 text-white dark:bg-rose-600 dark:text-white border border-rose-700 animate-pulse shadow-xs">
-                              <AlertTriangle className="w-3.5 h-3.5 text-white shrink-0" />
-                              {t('notApprovedByAdmin')}
-                            </span>
-                            <span className="text-[11px] font-bold text-rose-700 dark:text-rose-300 pl-0.5">
-                              {m.submitted_by_executive_name
-                                ? t('enteredByExecutive', { name: m.submitted_by_executive_name })
-                                : t('enteredByAdmin')}
-                            </span>
-                          </div>
-                        ) : m.submitted_by_executive_name ? (
-                          <div className="flex flex-col gap-0.5 items-start">
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                              {t('approvedByAdmin')}
-                            </span>
-                            <span className="text-[11px] text-slate-500 dark:text-slate-400 pl-0.5">
-                              {t('enteredByExecutive', { name: m.submitted_by_executive_name })}
-                            </span>
-                          </div>
-                        ) : (
-                          <div className="flex flex-col gap-0.5 items-start">
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
-                              <UserCheck className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                              {t('enteredByAdmin')}
-                            </span>
-                            <span className="text-[10px] text-emerald-600 dark:text-emerald-400 pl-0.5 font-medium">
-                              ✓ {t('approvedByAdmin')}
-                            </span>
-                          </div>
-                        )}
-                      </td>
-
-                      <td className="px-6 py-4"><MoneyDisplay amount={m.paid} className="font-medium text-emerald-600" /></td>
-                      <td className="px-6 py-4">
-                        {m.status === 'deceased' ? (
-                          <span className="text-slate-400 font-semibold">—</span>
-                        ) : (
-                          <MoneyDisplay amount={m.remaining} className="font-medium text-slate-700 dark:text-slate-300" />
-                        )}
-                      </td>
-                      <td className="px-6 py-4 text-right rtl:text-left">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => navigate(`/family/member/${m.id}`)}
-                        >
-                          Details
-                        </Button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                      View Member Statement
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
 
