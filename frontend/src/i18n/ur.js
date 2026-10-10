@@ -77,6 +77,11 @@ export default {
   verifyDeathCase: 'کیس کی تصدیق کریں',
   releasePayout: 'امداد جاری کریں (Rs. 70,000)',
   reversalReason: 'ریورسل کی وجہ',
-  deficitReason: 'منفی بیلنس کی تحریری وجہ',
-  duplicateMobileWarning: 'تنبیہ: یہ موبائل نمبر پہلے سے ممبر "{name}" کے پاس ہے۔ کیا آپ پھر بھی جاری رکھنا چاہتے ہیں؟',
+  // Entry & Approval Labels
+  enteredBy: 'اندراج کنندہ',
+  enteredByAdmin: 'ایڈمن کا اندراج',
+  enteredByExecutive: 'ایکزیکٹو کا اندراج: {name}',
+  approvedByAdmin: 'ایڈمن سے منظور شدہ',
+  notApprovedByAdmin: 'ایڈمن سے نا منظور شدہ',
+  pendingAdminApproval: 'ایڈمن کی منظوری کا منتظر',
 };

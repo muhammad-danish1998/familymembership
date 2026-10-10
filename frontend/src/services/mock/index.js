@@ -150,6 +150,10 @@ export const family = {
       const summary = calculateMemberSummary(m, memberPayments, {
         annualContribution: store.settings.annual_contribution,
       });
+      const exec = m.submitted_by_executive_id
+        ? store.executives?.find((e) => e.id === m.submitted_by_executive_id)
+        : null;
+
       return {
         id: m.id,
         name: m.name,
@@ -161,6 +165,9 @@ export const family = {
         isFullyPaid: summary.isFullyPaid,
         behindBy: summary.behindBy,
         isBehind: summary.isBehind,
+        approval_status: m.approval_status || 'approved',
+        submitted_by_executive_id: m.submitted_by_executive_id || null,
+        submitted_by_executive_name: m.submitted_by_executive_name || (exec ? exec.name : null),
       };
     });
 
@@ -195,6 +202,10 @@ export const family = {
       annualContribution: store.settings.annual_contribution,
     });
 
+    const exec = m.submitted_by_executive_id
+      ? store.executives?.find((e) => e.id === m.submitted_by_executive_id)
+      : null;
+
     // Strip sensitive fields (CNIC & Address) as per BR-31
     return {
       id: m.id,
@@ -203,17 +214,20 @@ export const family = {
       mobile: m.mobile,
       join_date: m.join_date,
       status: m.status,
+      approval_status: m.approval_status || 'approved',
+      submitted_by_executive_id: m.submitted_by_executive_id || null,
+      submitted_by_executive_name: m.submitted_by_executive_name || (exec ? exec.name : null),
       coverage: m.coverage || {},
       summary,
       yearView,
       payments: memberPayments.map((p) => {
-        const exec = p.executive_id ? store.executives.find((e) => e.id === p.executive_id) : null;
+        const pExec = p.executive_id ? store.executives.find((e) => e.id === p.executive_id) : null;
         return {
           id: p.id,
           amount: p.amount,
           type: p.type,
           payment_date: p.payment_date,
-          received_by: exec ? exec.name : 'Admin',
+          received_by: pExec ? pExec.name : 'Admin',
           note: p.note,
         };
       }),

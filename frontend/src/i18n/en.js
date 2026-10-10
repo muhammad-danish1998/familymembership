@@ -77,6 +77,11 @@ export default {
   verifyDeathCase: 'Verify Case',
   releasePayout: 'Release Payout (Rs. 70,000)',
   reversalReason: 'Reversal Reason',
-  deficitReason: 'Deficit Justification Reason',
-  duplicateMobileWarning: 'Warning: Mobile number already belongs to member "{name}". Continue anyway?',
+  // Entry & Approval Labels
+  enteredBy: 'Entered By',
+  enteredByAdmin: 'Entered by Admin',
+  enteredByExecutive: 'Entered by Executive: {name}',
+  approvedByAdmin: 'Approved by Admin',
+  notApprovedByAdmin: 'Not Approved by Admin',
+  pendingAdminApproval: 'Pending Admin Approval',
 };

@@ -118,7 +118,7 @@ export const family = {
   listMembers: async (_token, { search = '', page = 1, pageSize = 25 } = {}) => {
     const { data: membersList, error } = await supabase
       .from('members')
-      .select('id, name, father_name, mobile, status, join_date, opening_balance')
+      .select('id, name, father_name, mobile, status, join_date, opening_balance, approval_status, submitted_by_executive_id, executives:submitted_by_executive_id(name)')
       .order('name', { ascending: true });
     if (error) throw new Error(error.message);
 
@@ -138,6 +138,9 @@ export const family = {
         isFullyPaid: summary.isFullyPaid,
         behindBy: summary.behindBy,
         isBehind: summary.isBehind,
+        approval_status: m.approval_status || 'approved',
+        submitted_by_executive_id: m.submitted_by_executive_id || null,
+        submitted_by_executive_name: m.executives?.name || null,
       };
     });
 
@@ -164,7 +167,7 @@ export const family = {
   getMember: async (_token, id) => {
     const { data: m, error } = await supabase
       .from('members')
-      .select('id, name, father_name, mobile, join_date, status, member_coverage(*)')
+      .select('id, name, father_name, mobile, join_date, status, approval_status, submitted_by_executive_id, executives:submitted_by_executive_id(name), member_coverage(*)')
       .eq('id', id)
       .single();
     if (error || !m) throw new Error('Member not found');
@@ -181,6 +184,9 @@ export const family = {
       mobile: m.mobile,
       join_date: m.join_date,
       status: m.status,
+      approval_status: m.approval_status || 'approved',
+      submitted_by_executive_id: m.submitted_by_executive_id || null,
+      submitted_by_executive_name: m.executives?.name || null,
       coverage: m.member_coverage || {},
       summary,
       yearView,
