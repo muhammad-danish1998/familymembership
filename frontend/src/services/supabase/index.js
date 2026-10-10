@@ -754,8 +754,14 @@ export const executives = {
         const memberId = extractId(data);
         return { id: memberId, ...memberData, approval_status: 'pending' };
       }
-    } catch {
-      // Fall through to direct table insert if RPC is missing from cache
+      if (error && !error.message?.includes('Could not find the function')) {
+        throw new Error(error.message);
+      }
+    } catch (err) {
+      if (err.message && !err.message.includes('Could not find the function')) {
+        throw err;
+      }
+      // Fall through to direct table insert ONLY if RPC function is missing from database
     }
 
     // Direct table insert fallback

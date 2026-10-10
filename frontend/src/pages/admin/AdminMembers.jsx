@@ -15,6 +15,27 @@ import { formatMobile, formatCoverageSummary } from '../../lib/format.js';
 import { COVERAGE_KEYS } from '../../constants/index.js';
 import { UserPlus, Edit, UserCheck, UserX, Heart, ArrowLeft, ArrowRight, Trash2, CheckCircle, XCircle, Clock } from 'lucide-react';
 
+const EXECUTIVE_COLORS = [
+  { bg: 'bg-indigo-50 dark:bg-indigo-950/60', text: 'text-indigo-700 dark:text-indigo-300', border: 'border-indigo-200 dark:border-indigo-800', badge: 'bg-indigo-500' },
+  { bg: 'bg-purple-50 dark:bg-purple-950/60', text: 'text-purple-700 dark:text-purple-300', border: 'border-purple-200 dark:border-purple-800', badge: 'bg-purple-500' },
+  { bg: 'bg-cyan-50 dark:bg-cyan-950/60', text: 'text-cyan-700 dark:text-cyan-300', border: 'border-cyan-200 dark:border-cyan-800', badge: 'bg-cyan-500' },
+  { bg: 'bg-teal-50 dark:bg-teal-950/60', text: 'text-teal-700 dark:text-teal-300', border: 'border-teal-200 dark:border-teal-800', badge: 'bg-teal-500' },
+  { bg: 'bg-rose-50 dark:bg-rose-950/60', text: 'text-rose-700 dark:text-rose-300', border: 'border-rose-200 dark:border-rose-800', badge: 'bg-rose-500' },
+  { bg: 'bg-amber-50 dark:bg-amber-950/60', text: 'text-amber-700 dark:text-amber-300', border: 'border-amber-200 dark:border-amber-800', badge: 'bg-amber-500' },
+  { bg: 'bg-emerald-50 dark:bg-emerald-950/60', text: 'text-emerald-700 dark:text-emerald-300', border: 'border-emerald-200 dark:border-emerald-800', badge: 'bg-emerald-500' },
+  { bg: 'bg-blue-50 dark:bg-blue-950/60', text: 'text-blue-700 dark:text-blue-300', border: 'border-blue-200 dark:border-blue-800', badge: 'bg-blue-500' },
+];
+
+function getExecutiveColor(execName = '') {
+  if (!execName) return EXECUTIVE_COLORS[0];
+  let hash = 0;
+  for (let i = 0; i < execName.length; i++) {
+    hash = execName.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = Math.abs(hash) % EXECUTIVE_COLORS.length;
+  return EXECUTIVE_COLORS[index];
+}
+
 export function AdminMembers() {
   const { t, isRtl } = useI18n();
   const toast = useToast();
@@ -315,8 +336,20 @@ export function AdminMembers() {
                   <p className="text-xs text-slate-500 mt-0.5">
                     S/o {p.father_name} · Mobile: <span className="font-mono text-slate-700 dark:text-slate-300">{p.mobile}</span>
                   </p>
-                  <div className="mt-2 text-xs text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/60 p-2 rounded-lg space-y-1">
-                    <div>Submitted by: <strong className="text-amber-600 dark:text-amber-400">{p.submitted_by_executive_name || 'Executive'}</strong></div>
+                  <div className="mt-2 text-xs text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-lg space-y-1">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-slate-500">Submitted by:</span>
+                      {(() => {
+                        const execName = p.submitted_by_executive_name || 'Executive';
+                        const color = getExecutiveColor(execName);
+                        return (
+                          <span className={`inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full border ${color.bg} ${color.text} ${color.border}`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${color.badge}`} />
+                            {execName}
+                          </span>
+                        );
+                      })()}
+                    </div>
                     <div>Join Date: <DateDisplay date={p.join_date} /></div>
                     {Number(p.opening_balance || 0) > 0 && <div>Opening Dues: Rs. {p.opening_balance}</div>}
                   </div>
@@ -394,12 +427,21 @@ export function AdminMembers() {
                     <td className="px-6 py-4">
                       <div className="font-semibold text-slate-900 dark:text-white">{m.name}</div>
                       <div className="text-xs text-slate-500">S/o {m.father_name} · Joined <DateDisplay date={m.join_date} /></div>
-                      {(m.submitted_by_executive_name || m.submitted_by_executive_id) && (
-                        <div className="inline-flex items-center gap-1 text-[11px] text-amber-700 dark:text-amber-400 mt-1 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded-md border border-amber-200 dark:border-amber-900">
-                          <CheckCircle className="w-3 h-3 text-amber-500 shrink-0" />
-                          <span>Submitted by {m.submitted_by_executive_name || 'Executive'} · Approved by Admin</span>
-                        </div>
-                      )}
+                      {(() => {
+                        const execName = m.submitted_by_executive_name || (m.submitted_by_executive_id ? 'Executive' : null);
+                        if (!execName) return null;
+                        const color = getExecutiveColor(execName);
+                        const isPending = m.approval_status === 'pending';
+
+                        return (
+                          <div className={`inline-flex items-center gap-1.5 text-[11px] font-bold mt-1.5 px-2.5 py-0.5 rounded-full border ${color.bg} ${color.text} ${color.border}`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${color.badge}`} />
+                            <span>
+                              {isPending ? `⏳ Pending Approval · Entered by: ${execName}` : `Entered by: ${execName}`}
+                            </span>
+                          </div>
+                        );
+                      })()}
                     </td>
                     <td className="px-6 py-4 font-mono text-slate-600 dark:text-slate-400">{formatMobile(m.mobile)}</td>
                     <td className="px-6 py-4 text-xs text-slate-500">
