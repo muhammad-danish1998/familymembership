@@ -98,17 +98,32 @@ describe('Phase A Mock Service Adapter Tests', () => {
     });
     expect(submitted.approval_status).toBe('pending');
 
-    // 4. Admin list pending
+    // 4. Executive list my members
+    const myMembers = await executives.getMyMembers('exec-1', '5555');
+    expect(myMembers.some((m) => m.id === submitted.id)).toBe(true);
+
+    // 5. Executive record payment for submitted member
+    const payRes = await executives.addPayment('exec-1', '5555', {
+      memberId: submitted.id,
+      amount: 3000,
+      date: '2026-03-01',
+      note: 'Partial payment',
+    });
+    expect(payRes.payment.amount).toBe(3000);
+    expect(payRes.payment.executive_id).toBe('exec-1');
+    expect(payRes.receiptText).toContain('3,000');
+
+    // 6. Admin list pending
     const pendingList = await members.listPending();
     const foundPending = pendingList.find((p) => p.id === submitted.id);
     expect(foundPending).toBeDefined();
 
-    // 5. Admin approve submission
+    // 7. Admin approve submission
     const approved = await members.approveSubmission(submitted.id);
     expect(approved.approval_status).toBe('approved');
     expect(approved.status).toBe('active');
 
-    // 6. Admin remove executive
+    // 8. Admin remove executive
     const newExec = await executives.add('Temp Exec');
     await executives.remove(newExec.id);
     const updatedList = await executives.list();

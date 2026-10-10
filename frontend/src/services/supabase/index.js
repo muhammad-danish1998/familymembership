@@ -816,6 +816,77 @@ export const executives = {
       // Ignore coverage initialization error
     }
     return { ...newMem, approval_status: 'pending' };
+  },
+
+  getMyMembers: async (execId, pin) => {
+    const targetId = extractId(execId);
+    const { data: membersList, error } = await supabase
+      .from('members')
+      .select('id, name, father_name, mobile, status, join_date, opening_balance, approval_status, submitted_by_executive_id, member_coverage(*)')
+      .eq('submitted_by_executive_id', targetId)
+      .order('name', { ascending: true });
+
+    if (error) throw new Error(error.message);
+
+    const { data: paymentsList } = await supabase.from('payments').select('*, executives(name)');
+
+    return (membersList || []).map((m) => {
+      const mPayments = (paymentsList || []).filter((p) => p.member_id === m.id);
+      const summary = calculateMemberSummary(m, mPayments);
+      return {
+        ...m,
+        summary,
+        payments: mPayments.map((p) => ({
+          ...p,
+          received_by: p.executives?.name || 'Admin',
+        })),
+      };
+    });
+  },
+
+  addPayment: async (execId, pin, { memberId, amount, date, note }) => {
+    const targetId = extractId(execId);
+    // Verify member belongs to this executive
+    const { data: m, error: mErr } = await supabase
+      .from('members')
+      .select('id, name, father_name, mobile, join_date, submitted_by_executive_id')
+      .eq('id', memberId)
+      .single();
+
+    if (mErr || !m) throw new Error('Member not found');
+    if (m.submitted_by_executive_id !== targetId) {
+      throw new Error('You are only allowed to record payments for members submitted by you.');
+    }
+
+    const { data: payData, error: payErr } = await supabase
+      .from('payments')
+      .insert([
+        {
+          member_id: memberId,
+          amount: Number(amount),
+          type: 'payment',
+          payment_date: date,
+          executive_id: targetId,
+          note: note ? note.trim() : null,
+        },
+      ])
+      .select()
+      .single();
+
+    if (payErr) throw new Error(payErr.message);
+
+    const { data: allPayments } = await supabase.from('payments').select('*').eq('member_id', memberId);
+    const updatedSummary = calculateMemberSummary(m, allPayments || []);
+
+    const receiptText = `*Family Support Fund Receipt*\nMember: ${m.name}\nFather: ${m.father_name}\nAmount Collected: Rs. ${formatMoney(amount)}\nDate: ${date}\nTotal Paid: Rs. ${formatMoney(updatedSummary.paid)}\nRemaining Balance: Rs. ${formatMoney(updatedSummary.remaining)}`;
+    const whatsappLink = generateWhatsAppLink(m.mobile, receiptText);
+
+    return {
+      payment: payData,
+      summary: updatedSummary,
+      receiptText,
+      whatsappLink,
+    };
   }
 };
 

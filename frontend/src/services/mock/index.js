@@ -927,6 +927,107 @@ export const executives = {
     saveStore(store);
     return newMember;
   },
+
+  async getMyMembers(execId, pin) {
+    await delay();
+    const store = getStore();
+    const exec = store.executives.find((e) => e.id === execId);
+    if (!exec || !exec.active) throw { code: 'VALIDATION', message: 'Executive account not found or inactive.' };
+    const cleanPin = String(pin).trim();
+    if (exec.pin && String(exec.pin).trim() !== cleanPin) {
+      throw { code: 'VALIDATION', message: 'Incorrect PIN.' };
+    }
+
+    const myMembers = store.members
+      .filter((m) => m.submitted_by_executive_id === execId)
+      .map((m) => {
+        const mPayments = store.payments.filter((p) => p.member_id === m.id);
+        const summary = calculateMemberSummary(m, mPayments, {
+          annualContribution: store.settings.annual_contribution,
+        });
+        return {
+          ...m,
+          summary,
+          payments: mPayments.map((p) => {
+            const pExec = p.executive_id ? store.executives.find((e) => e.id === p.executive_id) : null;
+            return {
+              ...p,
+              received_by: pExec ? pExec.name : 'Admin',
+            };
+          }),
+        };
+      });
+
+    return myMembers;
+  },
+
+  async addPayment(execId, pin, { memberId, amount, date, note }) {
+    await delay();
+    const store = getStore();
+    const exec = store.executives.find((e) => e.id === execId);
+    if (!exec || !exec.active) throw { code: 'VALIDATION', message: 'Executive account not found or inactive.' };
+    const cleanPin = String(pin).trim();
+    if (exec.pin && String(exec.pin).trim() !== cleanPin) {
+      throw { code: 'VALIDATION', message: 'Incorrect PIN.' };
+    }
+
+    const member = store.members.find((m) => m.id === memberId);
+    if (!member) throw { code: 'VALIDATION', message: 'Member not found.' };
+
+    if (member.submitted_by_executive_id !== execId) {
+      throw {
+        code: 'VALIDATION',
+        message: 'You are only allowed to record payments for members submitted by you.',
+      };
+    }
+
+    const memberPayments = store.payments.filter((p) => p.member_id === memberId);
+    const summary = calculateMemberSummary(member, memberPayments, {
+      annualContribution: store.settings.annual_contribution,
+    });
+
+    const amountVal = validatePaymentAmount(amount, summary.maxPaymentAllowed);
+    if (!amountVal.valid) throw { code: amountVal.code, message: amountVal.message };
+
+    const dateVal = validatePaymentDate(date, member.join_date);
+    if (!dateVal.valid) throw { code: dateVal.code, message: dateVal.message };
+
+    const paymentRow = {
+      id: `pay-${Date.now()}`,
+      member_id: memberId,
+      amount: Number(amount),
+      type: 'payment',
+      reverses: null,
+      payment_date: date,
+      executive_id: execId,
+      note: note ? note.trim() : '',
+      created_by: `Executive: ${exec.name}`,
+      created_at: new Date().toISOString(),
+    };
+
+    store.payments.push(paymentRow);
+    writeAudit(
+      store,
+      'PAYMENT_ADDED_BY_EXECUTIVE',
+      `Executive "${exec.name}" recorded payment of Rs. ${amount} for member "${member.name}".`
+    );
+    saveStore(store);
+
+    const updatedPayments = store.payments.filter((p) => p.member_id === memberId);
+    const updatedSummary = calculateMemberSummary(member, updatedPayments, {
+      annualContribution: store.settings.annual_contribution,
+    });
+
+    const receiptText = `*Family Support Fund Receipt*\nMember: ${member.name}\nFather: ${member.father_name}\nAmount Collected: Rs. ${formatMoney(amount)}\nDate: ${date}\nCollected By Executive: ${exec.name}\nTotal Paid: Rs. ${formatMoney(updatedSummary.paid)}\nRemaining Balance: Rs. ${formatMoney(updatedSummary.remaining)}`;
+    const whatsappLink = generateWhatsAppLink(member.mobile, receiptText);
+
+    return {
+      payment: paymentRow,
+      summary: updatedSummary,
+      receiptText,
+      whatsappLink,
+    };
+  },
 };
 
 // -------------------------------------------------------------
