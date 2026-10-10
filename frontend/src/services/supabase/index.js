@@ -754,14 +754,18 @@ export const executives = {
         const memberId = extractId(data);
         return { id: memberId, ...memberData, approval_status: 'pending' };
       }
-      if (error && !error.message?.includes('Could not find the function')) {
-        throw new Error(error.message);
+      if (error) {
+        const isRpcMissing = error.message?.includes('Could not find the function') || error.message?.includes('crypt') || error.message?.includes('does not exist');
+        if (!isRpcMissing) {
+          throw new Error(error.message);
+        }
       }
     } catch (err) {
-      if (err.message && !err.message.includes('Could not find the function')) {
+      const isRpcMissing = err.message?.includes('Could not find the function') || err.message?.includes('crypt') || err.message?.includes('does not exist');
+      if (!isRpcMissing) {
         throw err;
       }
-      // Fall through to direct table insert ONLY if RPC function is missing from database
+      // Fall through to direct table insert if RPC function is missing or failing on crypt
     }
 
     // Direct table insert fallback

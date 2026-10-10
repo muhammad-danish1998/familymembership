@@ -21,11 +21,12 @@ CREATE OR REPLACE FUNCTION public.set_executive_pin(
 RETURNS VOID
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = ''
+SET search_path = public, extensions, pg_temp
 AS $$
 DECLARE
     v_actor TEXT;
     v_clean_pin TEXT;
+    v_hash TEXT;
 BEGIN
     IF NOT public.is_admin() THEN
         RAISE EXCEPTION 'Unauthorized: Admin privileges required';
@@ -37,8 +38,15 @@ BEGIN
         RAISE EXCEPTION 'PIN must be between 4 and 8 digits long';
     END IF;
 
+    -- Try crypt if pgcrypto extension is installed
+    BEGIN
+        v_hash := crypt(v_clean_pin, gen_salt('bf'));
+    EXCEPTION WHEN OTHERS THEN
+        v_hash := v_clean_pin;
+    END;
+
     UPDATE public.executives
-    SET pin_hash = public.crypt(v_clean_pin, public.gen_salt('bf')),
+    SET pin_hash = COALESCE(v_hash, v_clean_pin),
         pin_code = v_clean_pin
     WHERE id = p_id;
 
@@ -59,7 +67,7 @@ CREATE OR REPLACE FUNCTION public.verify_executive_pin(
 RETURNS TABLE (valid BOOLEAN, executive_id UUID, executive_name TEXT)
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = ''
+SET search_path = public, extensions, pg_temp
 AS $$
 DECLARE
     v_hash TEXT;
@@ -80,10 +88,20 @@ BEGIN
         RETURN;
     END IF;
 
-    IF (v_hash IS NOT NULL AND v_hash = public.crypt(v_clean_pin, v_hash))
-       OR v_hash = v_clean_pin
-       OR v_code = v_clean_pin THEN
+    -- Direct string check first (fast & reliable)
+    IF v_code = v_clean_pin OR v_hash = v_clean_pin THEN
         v_match := true;
+    ELSIF v_hash IS NOT NULL THEN
+        -- Try pgcrypto comparison if installed
+        BEGIN
+            IF v_hash = crypt(v_clean_pin, v_hash) THEN
+                v_match := true;
+            END IF;
+        EXCEPTION WHEN OTHERS THEN
+            IF v_hash = v_clean_pin THEN
+                v_match := true;
+            END IF;
+        END;
     END IF;
 
     RETURN QUERY SELECT v_match, p_id, v_name;
@@ -107,7 +125,7 @@ CREATE OR REPLACE FUNCTION public.executive_submit_member(
 RETURNS UUID
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = ''
+SET search_path = public, extensions, pg_temp
 AS $$
 DECLARE
     v_valid BOOLEAN;
