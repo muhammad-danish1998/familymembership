@@ -77,8 +77,12 @@ describe('Phase A Mock Service Adapter Tests', () => {
   });
 
   it('Executive portal PIN set, login, member submission & admin approval workflow', async () => {
-    // 1. Executive set PIN
     await executives.setPin('exec-1', '5555');
+
+    // Verify executive PIN is visible in admin list
+    const execList = await executives.list();
+    const exec1 = execList.find((e) => e.id === 'exec-1');
+    expect(exec1.pin).toBe('5555');
 
     // 2. Executive login with correct PIN
     const loginRes = await executives.login('exec-1', '5555');
@@ -103,5 +107,11 @@ describe('Phase A Mock Service Adapter Tests', () => {
     const approved = await members.approveSubmission(submitted.id);
     expect(approved.approval_status).toBe('approved');
     expect(approved.status).toBe('active');
+
+    // 6. Admin remove executive
+    const newExec = await executives.add('Temp Exec');
+    await executives.remove(newExec.id);
+    const updatedList = await executives.list();
+    expect(updatedList.find((e) => e.id === newExec.id)).toBeUndefined();
   });
 });

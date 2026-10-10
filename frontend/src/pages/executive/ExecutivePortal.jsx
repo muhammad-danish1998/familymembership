@@ -63,7 +63,7 @@ export function ExecutivePortal() {
 
     setIsSubmitting(true);
     try {
-      await executives.submitMember(id, pin, formData);
+      await executives.submitMember(id, pin.trim(), formData);
       setSubmitSuccess(
         isRtl
           ? `رکن "${formData.name}" کی درخواست ایڈمن منظوری کے لیے ارسال کر دی گئی ہے۔ ایڈمن کی منظوری کے بعد فنڈ کا حساب شروع ہوگا۔`

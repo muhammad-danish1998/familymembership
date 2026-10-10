@@ -843,15 +843,27 @@ export const executives = {
     return exec;
   },
 
+  async remove(id) {
+    await delay();
+    const store = getStore();
+    const idx = store.executives.findIndex((e) => e.id === id);
+    if (idx === -1) throw { code: 'VALIDATION', message: 'Executive not found.' };
+    const [removed] = store.executives.splice(idx, 1);
+    writeAudit(store, 'EXECUTIVE_REMOVED', `Removed executive collector "${removed.name}".`);
+    saveStore(store);
+    return { success: true };
+  },
+
   async setPin(id, pin) {
     await delay();
     const store = getStore();
     const exec = store.executives.find((e) => e.id === id);
     if (!exec) throw { code: 'VALIDATION', message: 'Executive not found.' };
-    if (!pin || pin.length < 4 || pin.length > 8 || !/^\d+$/.test(pin)) {
+    const cleanPin = String(pin).trim();
+    if (!cleanPin || cleanPin.length < 4 || cleanPin.length > 8 || !/^\d+$/.test(cleanPin)) {
       throw { code: 'VALIDATION', message: 'PIN must be between 4 and 8 digits.' };
     }
-    exec.pin = pin;
+    exec.pin = cleanPin;
     writeAudit(store, 'EXECUTIVE_PIN_SET', `Set PIN for executive "${exec.name}".`);
     saveStore(store);
     return { success: true };
@@ -862,7 +874,8 @@ export const executives = {
     const store = getStore();
     const exec = store.executives.find((e) => e.id === id);
     if (!exec || !exec.active) throw { code: 'VALIDATION', message: 'Executive account not found or inactive.' };
-    if (exec.pin && exec.pin !== pin) {
+    const cleanPin = String(pin).trim();
+    if (exec.pin && String(exec.pin).trim() !== cleanPin) {
       throw { code: 'VALIDATION', message: 'Incorrect PIN.' };
     }
     const token = `exec-token-${exec.id}-${Date.now()}`;
@@ -874,7 +887,8 @@ export const executives = {
     const store = getStore();
     const exec = store.executives.find((e) => e.id === execId);
     if (!exec || !exec.active) throw { code: 'VALIDATION', message: 'Executive account not found or inactive.' };
-    if (exec.pin && exec.pin !== pin) {
+    const cleanPin = String(pin).trim();
+    if (exec.pin && String(exec.pin).trim() !== cleanPin) {
       throw { code: 'VALIDATION', message: 'Incorrect PIN.' };
     }
 

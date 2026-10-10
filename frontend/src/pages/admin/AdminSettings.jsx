@@ -140,6 +140,20 @@ export function AdminSettings() {
     }
   };
 
+  const [execToRemove, setExecToRemove] = useState(null);
+
+  const handleConfirmRemoveExec = async () => {
+    if (!execToRemove) return;
+    try {
+      await executives.remove(execToRemove.id);
+      toast.success(`Executive "${execToRemove.name}" has been removed.`);
+      setExecToRemove(null);
+      fetchExecutives();
+    } catch (err) {
+      toast.error(err.message || 'Failed to remove executive.');
+    }
+  };
+
   const handleCopyExecLink = (exec) => {
     const portalUrl = `${window.location.origin}/executive/${exec.id}`;
     navigator.clipboard.writeText(portalUrl);
@@ -316,15 +330,30 @@ export function AdminSettings() {
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="font-bold text-slate-900 dark:text-white">{e.name}</span>
-                        {e.pin || e.pin_hash ? (
-                          <span className="text-[10px] bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 px-2 py-0.5 rounded-full font-semibold border border-emerald-200 dark:border-emerald-800">
-                            PIN Configured
-                          </span>
-                        ) : (
-                          <span className="text-[10px] bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 px-2 py-0.5 rounded-full font-semibold border border-amber-200 dark:border-amber-800">
-                            No PIN Set
-                          </span>
-                        )}
+                        {(() => {
+                          const displayPin = e.pin || e.pin_code || (e.pin_hash && !e.pin_hash.startsWith('$') ? e.pin_hash : null);
+                          if (displayPin) {
+                            return (
+                              <span className="inline-flex items-center gap-1 text-xs bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 px-2.5 py-0.5 rounded-full font-mono font-bold border border-emerald-200 dark:border-emerald-800">
+                                <KeyRound className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                                PIN: {displayPin}
+                              </span>
+                            );
+                          }
+                          if (e.pin_hash) {
+                            return (
+                              <span className="inline-flex items-center gap-1 text-xs bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 px-2.5 py-0.5 rounded-full font-mono font-bold border border-emerald-200 dark:border-emerald-800">
+                                <KeyRound className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                                PIN: Configured
+                              </span>
+                            );
+                          }
+                          return (
+                            <span className="text-xs bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 px-2.5 py-0.5 rounded-full font-semibold border border-amber-200 dark:border-amber-800">
+                              No PIN Set
+                            </span>
+                          );
+                        })()}
                       </div>
                       <span className="text-xs text-slate-400 block mt-0.5">
                         Total Collected Net: <MoneyDisplay amount={e.totalCollected} className="font-bold" />
@@ -360,6 +389,17 @@ export function AdminSettings() {
                         onClick={() => handleToggleExec(e)}
                       >
                         {e.active ? 'Active' : 'Inactive'}
+                      </Button>
+
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
+                        onClick={() => setExecToRemove(e)}
+                        title="Remove executive collector"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        Remove
                       </Button>
                     </div>
                   </div>
@@ -401,6 +441,17 @@ export function AdminSettings() {
                 </div>
               </form>
             </Dialog>
+
+            {/* Remove Executive Confirm Dialog */}
+            <ConfirmDialog
+              isOpen={!!execToRemove}
+              onClose={() => setExecToRemove(null)}
+              onConfirm={handleConfirmRemoveExec}
+              title="Remove Executive Collector"
+              message={`Are you sure you want to remove executive collector "${execToRemove?.name}"? They will no longer be able to access the executive portal.`}
+              confirmLabel="Remove Executive"
+              variant="danger"
+            />
           </div>
         )}
 

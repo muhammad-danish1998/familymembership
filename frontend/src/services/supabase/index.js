@@ -658,15 +658,32 @@ export const executives = {
       .eq('id', targetId);
     if (directErr) throw new Error(directErr.message);
   },
+  remove: async (id) => {
+    const targetId = extractId(id);
+    try {
+      const { error } = await supabase.rpc('delete_executive', { p_id: targetId });
+      if (!error) return { success: true };
+    } catch {
+      // Fall through
+    }
+
+    const { error: directErr } = await supabase
+      .from('executives')
+      .delete()
+      .eq('id', targetId);
+    if (directErr) throw new Error(directErr.message);
+    return { success: true };
+  },
   setPin: async (id, pin) => {
     const targetId = extractId(id);
-    const { error } = await supabase.rpc('set_executive_pin', { p_id: targetId, p_pin: String(pin) });
+    const cleanPin = String(pin).trim();
+    const { error } = await supabase.rpc('set_executive_pin', { p_id: targetId, p_pin: cleanPin });
     if (!error) return { success: true };
 
     // Direct fallback if RPC is missing
     const { error: directErr } = await supabase
       .from('executives')
-      .update({ pin_hash: String(pin) })
+      .update({ pin_hash: cleanPin })
       .eq('id', targetId);
 
     if (!directErr) return { success: true };
@@ -677,30 +694,38 @@ export const executives = {
   },
   login: async (id, pin) => {
     const targetId = extractId(id);
+    const cleanPin = String(pin).trim();
     try {
-      const { data, error } = await supabase.rpc('verify_executive_pin', { p_id: targetId, p_pin: String(pin) });
+      const { data, error } = await supabase.rpc('verify_executive_pin', { p_id: targetId, p_pin: cleanPin });
       if (!error) {
         const res = Array.isArray(data) ? data[0] : data;
-        if (!res || !res.valid) {
-          throw new Error('Incorrect Executive PIN.');
+        if (res && res.valid) {
+          const token = `exec-token-${targetId}-${Date.now()}`;
+          sessionStorage.setItem('exec_token', token);
+          return { token, executive: { id: targetId, name: res.executive_name } };
         }
-        const token = `exec-token-${targetId}-${Date.now()}`;
-        sessionStorage.setItem('exec_token', token);
-        return { token, executive: { id: targetId, name: res.executive_name } };
       }
-      if (error.message?.includes('Could not find the function')) {
-        const { data: execData } = await supabase
-          .from('executives')
-          .select('*')
-          .eq('id', targetId)
-          .maybeSingle();
-        if (execData && (execData.pin_hash === String(pin) || !execData.pin_hash)) {
+
+      // Check table directly if RPC failed or returned valid: false (e.g. plain text stored pin or missing RPC)
+      const { data: execData } = await supabase
+        .from('executives')
+        .select('*')
+        .eq('id', targetId)
+        .maybeSingle();
+
+      if (execData && execData.active) {
+        if (!execData.pin_hash || String(execData.pin_hash).trim() === cleanPin) {
           const token = `exec-token-${targetId}-${Date.now()}`;
           sessionStorage.setItem('exec_token', token);
           return { token, executive: { id: targetId, name: execData.name } };
         }
       }
-      throw new Error(error.message);
+
+      if (error && !error.message?.includes('Could not find the function')) {
+        throw new Error(error.message);
+      }
+
+      throw new Error('Incorrect Executive PIN.');
     } catch (err) {
       if (err.message?.includes('Could not find the function')) {
         throw new Error(
@@ -712,10 +737,11 @@ export const executives = {
   },
   submitMember: async (execId, pin, memberData) => {
     const targetId = extractId(execId);
+    const cleanPin = String(pin).trim();
     try {
       const { data, error } = await supabase.rpc('executive_submit_member', {
         p_executive_id: targetId,
-        p_pin: String(pin),
+        p_pin: cleanPin,
         p_name: memberData.name,
         p_father_name: memberData.father_name,
         p_mobile: memberData.mobile,
@@ -733,6 +759,20 @@ export const executives = {
     }
 
     // Direct table insert fallback
+    const { data: execData } = await supabase
+      .from('executives')
+      .select('*')
+      .eq('id', targetId)
+      .maybeSingle();
+
+    if (!execData || !execData.active) {
+      throw new Error('Executive account not found or inactive.');
+    }
+
+    if (execData.pin_hash && String(execData.pin_hash).trim() !== cleanPin) {
+      throw new Error('Incorrect Executive PIN.');
+    }
+
     const { data: newMem, error: insertErr } = await supabase
       .from('members')
       .insert([

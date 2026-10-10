@@ -1,8 +1,9 @@
 -- Migration: 20261010000000_executive_portal_and_approvals.sql
 -- Description: Executive Portal PIN access, submission queue & Admin approvals
 
--- 1. Add pin_hash to executives
+-- 1. Add pin_hash and pin_code to executives
 ALTER TABLE public.executives ADD COLUMN IF NOT EXISTS pin_hash TEXT;
+ALTER TABLE public.executives ADD COLUMN IF NOT EXISTS pin_code TEXT;
 
 -- 2. Add approval tracking columns to members
 ALTER TABLE public.members ADD COLUMN IF NOT EXISTS submitted_by_executive_id UUID REFERENCES public.executives(id) ON DELETE SET NULL;
@@ -24,17 +25,21 @@ SET search_path = ''
 AS $$
 DECLARE
     v_actor TEXT;
+    v_clean_pin TEXT;
 BEGIN
     IF NOT public.is_admin() THEN
         RAISE EXCEPTION 'Unauthorized: Admin privileges required';
     END IF;
 
-    IF LENGTH(p_pin) < 4 OR LENGTH(p_pin) > 8 THEN
+    v_clean_pin := TRIM(p_pin);
+
+    IF LENGTH(v_clean_pin) < 4 OR LENGTH(v_clean_pin) > 8 THEN
         RAISE EXCEPTION 'PIN must be between 4 and 8 digits long';
     END IF;
 
     UPDATE public.executives
-    SET pin_hash = public.crypt(p_pin, public.gen_salt('bf'))
+    SET pin_hash = public.crypt(v_clean_pin, public.gen_salt('bf')),
+        pin_code = v_clean_pin
     WHERE id = p_id;
 
     v_actor := (SELECT email FROM auth.users WHERE id = auth.uid());
@@ -58,20 +63,26 @@ SET search_path = ''
 AS $$
 DECLARE
     v_hash TEXT;
+    v_code TEXT;
     v_name TEXT;
     v_active BOOLEAN;
     v_match BOOLEAN := false;
+    v_clean_pin TEXT;
 BEGIN
-    SELECT pin_hash, name, active INTO v_hash, v_name, v_active
+    v_clean_pin := TRIM(p_pin);
+
+    SELECT pin_hash, pin_code, name, active INTO v_hash, v_code, v_name, v_active
     FROM public.executives
     WHERE id = p_id;
 
-    IF v_hash IS NULL OR v_active IS NOT TRUE THEN
+    IF (v_hash IS NULL AND v_code IS NULL) OR v_active IS NOT TRUE THEN
         RETURN QUERY SELECT false, p_id, COALESCE(v_name, 'Executive');
         RETURN;
     END IF;
 
-    IF v_hash = public.crypt(p_pin, v_hash) THEN
+    IF (v_hash IS NOT NULL AND v_hash = public.crypt(v_clean_pin, v_hash))
+       OR v_hash = v_clean_pin
+       OR v_code = v_clean_pin THEN
         v_match := true;
     END IF;
 
@@ -214,6 +225,36 @@ BEGIN
         COALESCE(v_actor, 'Admin'),
         'member_submission_rejected',
         jsonb_build_object('id', p_member_id)
+    );
+END;
+$$;
+
+-- 8. RPC: Delete Executive (Admin only)
+CREATE OR REPLACE FUNCTION public.delete_executive(
+    p_id UUID
+)
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+DECLARE
+    v_name TEXT;
+    v_actor TEXT;
+BEGIN
+    IF NOT public.is_admin() THEN
+        RAISE EXCEPTION 'Unauthorized: Admin privileges required';
+    END IF;
+
+    SELECT name INTO v_name FROM public.executives WHERE id = p_id;
+
+    DELETE FROM public.executives WHERE id = p_id;
+
+    v_actor := (SELECT email FROM auth.users WHERE id = auth.uid());
+    PERFORM public.log_audit(
+        COALESCE(v_actor, 'Admin'),
+        'executive_deleted',
+        jsonb_build_object('executive_id', p_id, 'name', v_name)
     );
 END;
 $$;
