@@ -20,7 +20,8 @@ export function ExecutivePortal() {
     cnic: '',
     address: '',
     join_date: new Date().toISOString().split('T')[0],
-    opening_balance: 0,
+    opening_balance: 2000,
+    memberType: 'new',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
@@ -76,7 +77,8 @@ export function ExecutivePortal() {
         cnic: '',
         address: '',
         join_date: new Date().toISOString().split('T')[0],
-        opening_balance: 0,
+        opening_balance: 2000,
+        memberType: 'new',
       });
     } catch (err) {
       setSubmitError(err.message || (isRtl ? 'اندراج میں ناکامی' : 'Failed to submit member'));
@@ -276,9 +278,48 @@ export function ExecutivePortal() {
               />
             </div>
 
+          </div>
+
+          <div className="bg-slate-950/80 p-4 rounded-xl border border-slate-800 space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+                {isRtl ? 'رکنیت کی قسم اور اندراج فیس' : 'Member Category & Entry Fee'}
+              </label>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setFormData((prev) => ({ ...prev, memberType: 'new', opening_balance: 2000 }))}
+                className={`p-3 rounded-xl border text-left rtl:text-right text-xs font-semibold transition ${
+                  formData.memberType !== 'existing'
+                    ? 'bg-emerald-500/10 border-emerald-500 text-emerald-300 ring-1 ring-emerald-500/30'
+                    : 'bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800'
+                }`}
+              >
+                <div className="font-bold text-slate-100 text-sm">✨ {isRtl ? 'نیا رکن' : 'New Member'}</div>
+                <div className="text-emerald-400 mt-0.5">{isRtl ? 'یکمشت اندراج فیس: 2,000 روپے' : 'One-Time Entry Fee: Rs. 2,000'}</div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setFormData((prev) => ({ ...prev, memberType: 'existing', opening_balance: 0 }))}
+                className={`p-3 rounded-xl border text-left rtl:text-right text-xs font-semibold transition ${
+                  formData.memberType === 'existing'
+                    ? 'bg-emerald-500/10 border-emerald-500 text-emerald-300 ring-1 ring-emerald-500/30'
+                    : 'bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800'
+                }`}
+              >
+                <div className="font-bold text-slate-100 text-sm">👤 {isRtl ? 'پرانا / سینیئر رکن' : 'Old / Existing Member'}</div>
+                <div className="text-slate-400 mt-0.5">{isRtl ? 'سابقہ واجبات' : 'Custom Carried Dues'}</div>
+              </button>
+            </div>
+
             <div>
               <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
-                {isRtl ? 'ابتدائی سابقہ بقایا (Opening Dues)' : 'Opening Balance Dues (Rs.)'}
+                {formData.memberType === 'existing'
+                  ? (isRtl ? 'سابقہ بقایا واجبات (Rs.)' : 'Carried Dues / Previous Balance (Rs.)')
+                  : (isRtl ? 'یکمشت اندراج فیس (Rs. 2,000)' : 'One-Time Entry Fee (Rs.)')}
               </label>
               <input
                 type="number"
@@ -286,7 +327,7 @@ export function ExecutivePortal() {
                 name="opening_balance"
                 value={formData.opening_balance}
                 onChange={handleFormChange}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-100 focus:outline-none focus:border-emerald-500 text-sm"
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-100 focus:outline-none focus:border-emerald-500 text-sm font-mono"
               />
             </div>
           </div>

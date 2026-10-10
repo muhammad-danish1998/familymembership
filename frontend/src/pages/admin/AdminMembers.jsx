@@ -65,7 +65,8 @@ export function AdminMembers() {
     cnic: '',
     address: '',
     join_date: new Date().toISOString().split('T')[0],
-    opening_balance: 0,
+    opening_balance: 2000,
+    memberType: 'new',
   });
 
   const [coverageData, setCoverageData] = useState({});
@@ -257,7 +258,8 @@ export function AdminMembers() {
       cnic: '',
       address: '',
       join_date: new Date().toISOString().split('T')[0],
-      opening_balance: 0,
+      opening_balance: 2000,
+      memberType: 'new',
     });
   };
 
@@ -350,8 +352,13 @@ export function AdminMembers() {
                         );
                       })()}
                     </div>
-                    <div>Join Date: <DateDisplay date={p.join_date} /></div>
-                    {Number(p.opening_balance || 0) > 0 && <div>Opening Dues: Rs. {p.opening_balance}</div>}
+                    {Number(p.opening_balance || 0) > 0 && (
+                      <div>
+                        {Number(p.opening_balance) === 2000
+                          ? 'One-Time Entry Fee: Rs. 2,000'
+                          : `Carried Dues: Rs. ${p.opening_balance}`}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -588,15 +595,56 @@ export function AdminMembers() {
               />
             </div>
             {!editMember && (
-              <div>
-                <label className="block text-xs font-semibold mb-1">Opening Balance Dues (Rs.)</label>
-                <input
-                  type="number"
-                  min="0"
-                  value={formData.opening_balance}
-                  onChange={(e) => setFormData({ ...formData, opening_balance: e.target.value })}
-                  className="w-full px-3 py-2 text-sm font-mono border border-slate-300 dark:border-slate-700 rounded-lg dark:bg-slate-800"
-                />
+              <div className="sm:col-span-2 bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 space-y-3 mt-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+                    Member Category & Entry Fee
+                  </label>
+                  <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
+                    Default: New Member (Rs. 2,000)
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setFormData((prev) => ({ ...prev, memberType: 'new', opening_balance: 2000 }))}
+                    className={`p-2.5 rounded-lg border text-left text-xs font-semibold transition ${
+                      formData.memberType !== 'existing'
+                        ? 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-500 text-emerald-900 dark:text-emerald-200 ring-2 ring-emerald-500/20'
+                        : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100'
+                    }`}
+                  >
+                    <div className="font-bold text-slate-900 dark:text-white">✨ New Member</div>
+                    <div className="text-[11px] text-emerald-600 dark:text-emerald-400 mt-0.5">One-Time Entry Fee: Rs. 2,000</div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setFormData((prev) => ({ ...prev, memberType: 'existing', opening_balance: 0 }))}
+                    className={`p-2.5 rounded-lg border text-left text-xs font-semibold transition ${
+                      formData.memberType === 'existing'
+                        ? 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-500 text-emerald-900 dark:text-emerald-200 ring-2 ring-emerald-500/20'
+                        : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100'
+                    }`}
+                  >
+                    <div className="font-bold text-slate-900 dark:text-white">👤 Old / Existing Member</div>
+                    <div className="text-[11px] text-slate-500 mt-0.5">Custom Carried Dues</div>
+                  </button>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold mb-1">
+                    {formData.memberType === 'existing' ? 'Carried Dues / Previous Balance (Rs.)' : 'One-Time Entry Fee (Rs.)'}
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={formData.opening_balance}
+                    onChange={(e) => setFormData({ ...formData, opening_balance: e.target.value })}
+                    className="w-full px-3 py-2 text-sm font-mono border border-slate-300 dark:border-slate-700 rounded-lg dark:bg-slate-800"
+                  />
+                </div>
               </div>
             )}
           </div>
