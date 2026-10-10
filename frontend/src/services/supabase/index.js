@@ -794,7 +794,11 @@ export const executives = {
 
     if (insertErr) throw new Error(insertErr.message);
 
-    await supabase.from('member_coverage').insert([{ member_id: newMem.id }]).catch(() => {});
+    try {
+      await supabase.from('member_coverage').insert([{ member_id: newMem.id }]);
+    } catch {
+      // Ignore coverage initialization error
+    }
     return { ...newMem, approval_status: 'pending' };
   }
 };
