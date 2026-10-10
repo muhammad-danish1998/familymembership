@@ -919,13 +919,49 @@ export const executives = {
       submitted_by_executive_id: exec.id,
       submitted_by_executive_name: exec.name,
       approval_status: 'pending',
-      coverage: { sons: 0, daughters: 0, wife: 0, father: 0, mother: 0, brothers: 0, sisters: 0, other: 0 },
+      coverage: memberData.coverage || { sons: 0, daughters: 0, wife: 0, father: 0, mother: 0, brothers: 0, sisters: 0, other: 0 },
     };
 
     store.members.push(newMember);
     writeAudit(store, 'MEMBER_SUBMITTED_PENDING', `Executive "${exec.name}" submitted new member "${newMember.name}" for Admin approval.`);
     saveStore(store);
     return newMember;
+  },
+
+  async saveCoverage(execId, pin, memberId, coverageCounts) {
+    await delay();
+    const store = getStore();
+    const exec = store.executives.find((e) => e.id === execId);
+    if (!exec || !exec.active) throw { code: 'VALIDATION', message: 'Executive account not found or inactive.' };
+    const cleanPin = String(pin).trim();
+    if (exec.pin && String(exec.pin).trim() !== cleanPin) {
+      throw { code: 'VALIDATION', message: 'Incorrect PIN.' };
+    }
+
+    const member = store.members.find((m) => m.id === memberId);
+    if (!member) throw { code: 'VALIDATION', message: 'Member not found.' };
+
+    if (member.submitted_by_executive_id !== execId) {
+      throw {
+        code: 'VALIDATION',
+        message: 'You are only allowed to manage coverage for members submitted by you.',
+      };
+    }
+
+    member.coverage = {
+      sons: Math.max(0, Math.min(20, Number(coverageCounts.sons || 0))),
+      daughters: Math.max(0, Math.min(20, Number(coverageCounts.daughters || 0))),
+      wife: Math.max(0, Math.min(20, Number(coverageCounts.wife || 0))),
+      father: Math.max(0, Math.min(20, Number(coverageCounts.father || 0))),
+      mother: Math.max(0, Math.min(20, Number(coverageCounts.mother || 0))),
+      brothers: Math.max(0, Math.min(20, Number(coverageCounts.brothers || 0))),
+      sisters: Math.max(0, Math.min(20, Number(coverageCounts.sisters || 0))),
+      other: Math.max(0, Math.min(20, Number(coverageCounts.other || 0))),
+    };
+
+    writeAudit(store, 'COVERAGE_UPDATED_BY_EXECUTIVE', `Executive "${exec.name}" updated dependent coverage for member "${member.name}".`);
+    saveStore(store);
+    return member;
   },
 
   async getMyMembers(execId, pin) {

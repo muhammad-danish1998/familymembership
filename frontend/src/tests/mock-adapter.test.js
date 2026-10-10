@@ -113,6 +113,15 @@ describe('Phase A Mock Service Adapter Tests', () => {
     expect(payRes.payment.executive_id).toBe('exec-1');
     expect(payRes.receiptText).toContain('3,000');
 
+    // 6. Executive update dependent coverage
+    const covRes = await executives.saveCoverage('exec-1', '5555', submitted.id, {
+      sons: 2,
+      daughters: 1,
+      wife: 1,
+    });
+    expect(covRes.coverage.sons).toBe(2);
+    expect(covRes.coverage.daughters).toBe(1);
+
     // 6. Admin list pending
     const pendingList = await members.listPending();
     const foundPending = pendingList.find((p) => p.id === submitted.id);

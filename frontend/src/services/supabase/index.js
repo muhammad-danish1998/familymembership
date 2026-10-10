@@ -811,11 +811,58 @@ export const executives = {
     if (insertErr) throw new Error(insertErr.message);
 
     try {
-      await supabase.from('member_coverage').insert([{ member_id: newMem.id }]);
+      const covData = memberData.coverage || {};
+      await supabase.from('member_coverage').insert([
+        {
+          member_id: newMem.id,
+          sons: Math.max(0, Math.min(20, Number(covData.sons || 0))),
+          daughters: Math.max(0, Math.min(20, Number(covData.daughters || 0))),
+          wife: Math.max(0, Math.min(20, Number(covData.wife || 0))),
+          father: Math.max(0, Math.min(20, Number(covData.father || 0))),
+          mother: Math.max(0, Math.min(20, Number(covData.mother || 0))),
+          brothers: Math.max(0, Math.min(20, Number(covData.brothers || 0))),
+          sisters: Math.max(0, Math.min(20, Number(covData.sisters || 0))),
+          other: Math.max(0, Math.min(20, Number(covData.other || 0))),
+        },
+      ]);
     } catch {
       // Ignore coverage initialization error
     }
     return { ...newMem, approval_status: 'pending' };
+  },
+
+  saveCoverage: async (execId, pin, memberId, coverageCounts) => {
+    const targetId = extractId(execId);
+    const { data: m, error: mErr } = await supabase
+      .from('members')
+      .select('id, submitted_by_executive_id')
+      .eq('id', memberId)
+      .single();
+
+    if (mErr || !m) throw new Error('Member not found');
+    if (m.submitted_by_executive_id !== targetId) {
+      throw new Error('You are only allowed to manage coverage for members submitted by you.');
+    }
+
+    const cleaned = {
+      sons: Math.max(0, Math.min(20, Number(coverageCounts.sons || 0))),
+      daughters: Math.max(0, Math.min(20, Number(coverageCounts.daughters || 0))),
+      wife: Math.max(0, Math.min(20, Number(coverageCounts.wife || 0))),
+      father: Math.max(0, Math.min(20, Number(coverageCounts.father || 0))),
+      mother: Math.max(0, Math.min(20, Number(coverageCounts.mother || 0))),
+      brothers: Math.max(0, Math.min(20, Number(coverageCounts.brothers || 0))),
+      sisters: Math.max(0, Math.min(20, Number(coverageCounts.sisters || 0))),
+      other: Math.max(0, Math.min(20, Number(coverageCounts.other || 0))),
+    };
+
+    const { data, error } = await supabase
+      .from('member_coverage')
+      .upsert({ member_id: memberId, ...cleaned })
+      .select()
+      .single();
+
+    if (error) throw new Error(error.message);
+    return data;
   },
 
   getMyMembers: async (execId, pin) => {

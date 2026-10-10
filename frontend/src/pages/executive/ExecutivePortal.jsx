@@ -7,7 +7,8 @@ import { Button } from '../../components/common/Button.jsx';
 import { MoneyDisplay } from '../../components/common/MoneyDisplay.jsx';
 import { DateDisplay } from '../../components/common/DateDisplay.jsx';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner.jsx';
-import { formatMobile, formatMoney } from '../../lib/format.js';
+import { formatMobile, formatMoney, formatCoverageSummary } from '../../lib/format.js';
+import { COVERAGE_KEYS } from '../../constants/index.js';
 import {
   User,
   PlusCircle,
@@ -20,11 +21,32 @@ import {
   Search,
   RefreshCw,
   LogOut,
-  Wallet,
   Users,
-  Clock,
   History,
+  Heart,
 } from 'lucide-react';
+
+const COVERAGE_LABELS_UR = {
+  sons: 'بیٹے',
+  daughters: 'بیٹیاں',
+  wife: 'اہلیہ',
+  father: 'والد',
+  mother: 'والدہ',
+  brothers: 'بھائی',
+  sisters: 'بہنیں',
+  other: 'دیگر',
+};
+
+const COVERAGE_LABELS_EN = {
+  sons: 'Sons',
+  daughters: 'Daughters',
+  wife: 'Wife',
+  father: 'Father',
+  mother: 'Mother',
+  brothers: 'Brothers',
+  sisters: 'Sisters',
+  other: 'Other Dependents',
+};
 
 export function ExecutivePortal() {
   const { id } = useParams();
@@ -67,6 +89,21 @@ export function ExecutivePortal() {
   // Payment History Drawer State
   const [historyModalMember, setHistoryModalMember] = useState(null);
 
+  // Dependent Coverage Modal State
+  const [coverageModalMember, setCoverageModalMember] = useState(null);
+  const [coverageData, setCoverageData] = useState({
+    sons: 0,
+    daughters: 0,
+    wife: 0,
+    father: 0,
+    mother: 0,
+    brothers: 0,
+    sisters: 0,
+    other: 0,
+  });
+  const [savingCoverage, setSavingCoverage] = useState(false);
+  const [coverageError, setCoverageError] = useState('');
+
   // Submission Form State
   const [formData, setFormData] = useState({
     name: '',
@@ -77,6 +114,16 @@ export function ExecutivePortal() {
     join_date: new Date().toISOString().split('T')[0],
     opening_balance: 2000,
     memberType: 'new',
+    coverage: {
+      sons: 0,
+      daughters: 0,
+      wife: 0,
+      father: 0,
+      mother: 0,
+      brothers: 0,
+      sisters: 0,
+      other: 0,
+    },
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
@@ -129,6 +176,17 @@ export function ExecutivePortal() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handleCoverageCountChange = (key, count) => {
+    const val = Math.max(0, Math.min(20, parseInt(count) || 0));
+    setFormData((prev) => ({
+      ...prev,
+      coverage: {
+        ...prev.coverage,
+        [key]: val,
+      },
+    }));
+  };
+
   const handleSubmitMember = async (e) => {
     e.preventDefault();
     setSubmitError('');
@@ -156,6 +214,7 @@ export function ExecutivePortal() {
         join_date: new Date().toISOString().split('T')[0],
         opening_balance: 2000,
         memberType: 'new',
+        coverage: { sons: 0, daughters: 0, wife: 0, father: 0, mother: 0, brothers: 0, sisters: 0, other: 0 },
       });
       // Refresh member list and switch to My Members tab
       await loadMyMembers();
@@ -212,6 +271,30 @@ export function ExecutivePortal() {
       setPaymentError(err.message || (isRtl ? 'ادائیگی کا اندراج نہ ہو سکا' : 'Failed to record payment'));
     } finally {
       setIsRecordingPayment(false);
+    }
+  };
+
+  const handleOpenCoverageModal = (member) => {
+    setCoverageModalMember(member);
+    setCoverageData(
+      member.coverage || { sons: 0, daughters: 0, wife: 0, father: 0, mother: 0, brothers: 0, sisters: 0, other: 0 }
+    );
+    setCoverageError('');
+  };
+
+  const handleSaveCoverageSubmit = async (e) => {
+    e.preventDefault();
+    if (!coverageModalMember) return;
+    setSavingCoverage(true);
+    setCoverageError('');
+    try {
+      await executives.saveCoverage(id, pin.trim(), coverageModalMember.id, coverageData);
+      setCoverageModalMember(null);
+      await loadMyMembers();
+    } catch (err) {
+      setCoverageError(err.message || (isRtl ? 'کفالت کی معلومات محفوظ نہ ہو سکیں' : 'Failed to save dependent coverage'));
+    } finally {
+      setSavingCoverage(false);
     }
   };
 
@@ -396,8 +479,8 @@ export function ExecutivePortal() {
               </h2>
               <p className="text-slate-400 text-xs mt-1">
                 {isRtl
-                  ? 'آپ صرف اپنے درج کردہ اراکین کی ادائیگیاں درج کر سکتے ہیں۔'
-                  : 'You can view and record payments for members submitted by your executive account.'}
+                  ? 'آپ اپنے درج کردہ اراکین کی ادائیگیاں اور زیرِ کفالت افراد کی تعداد کا اندراج کر سکتے ہیں۔'
+                  : 'You can record payments and manage dependent coverage for members submitted by your executive account.'}
               </p>
             </div>
 
@@ -454,8 +537,8 @@ export function ExecutivePortal() {
                 <thead className="bg-slate-950 text-slate-400 uppercase font-semibold border-b border-slate-800">
                   <tr>
                     <th className="px-4 py-3">{isRtl ? 'رکن کا نام' : 'Member Name'}</th>
-                    <th className="px-4 py-3">{isRtl ? 'والد کا نام' : 'Father Name'}</th>
                     <th className="px-4 py-3">{isRtl ? 'موبائل نمبر' : 'Mobile'}</th>
+                    <th className="px-4 py-3">{isRtl ? 'زیرِ کفالت افراد' : 'Dependent Coverage'}</th>
                     <th className="px-4 py-3">{isRtl ? 'منظوری کی حالت' : 'Approval Status'}</th>
                     <th className="px-4 py-3">{isRtl ? 'ادا شدہ رقم' : 'Total Paid'}</th>
                     <th className="px-4 py-3">{isRtl ? 'بقایا واجبات' : 'Remaining Dues'}</th>
@@ -467,6 +550,7 @@ export function ExecutivePortal() {
                     const isUnapproved = m.approval_status === 'pending' || m.approval_status === 'rejected';
                     const paidAmt = m.summary?.paid || 0;
                     const remAmt = m.summary?.remaining || 0;
+                    const covSummary = formatCoverageSummary(m.coverage);
 
                     return (
                       <tr
@@ -475,9 +559,18 @@ export function ExecutivePortal() {
                           isUnapproved ? 'bg-rose-500/5 hover:bg-rose-500/10' : 'hover:bg-slate-800/40'
                         }`}
                       >
-                        <td className="px-4 py-3.5 font-bold text-slate-100">{m.name}</td>
-                        <td className="px-4 py-3.5 text-slate-300">{m.father_name}</td>
+                        <td className="px-4 py-3.5">
+                          <div className="font-bold text-slate-100">{m.name}</div>
+                          <div className="text-[11px] text-slate-400">S/o {m.father_name}</div>
+                        </td>
                         <td className="px-4 py-3.5 font-mono text-slate-300">{formatMobile(m.mobile)}</td>
+
+                        {/* Coverage Summary */}
+                        <td className="px-4 py-3.5">
+                          <div className="font-semibold text-emerald-400 text-xs">
+                            {covSummary || (isRtl ? 'خود (1 فرد)' : 'Self Only')}
+                          </div>
+                        </td>
 
                         {/* Approval Status Badge */}
                         <td className="px-4 py-3.5">
@@ -505,7 +598,7 @@ export function ExecutivePortal() {
                         </td>
 
                         {/* Actions */}
-                        <td className="px-4 py-3.5 text-right rtl:text-left space-x-2 rtl:space-x-reverse">
+                        <td className="px-4 py-3.5 text-right rtl:text-left space-x-1.5 rtl:space-x-reverse">
                           <button
                             onClick={() => handleOpenRecordPayment(m)}
                             className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg transition shadow-sm text-xs inline-flex items-center gap-1"
@@ -515,8 +608,17 @@ export function ExecutivePortal() {
                           </button>
 
                           <button
+                            onClick={() => handleOpenCoverageModal(m)}
+                            className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-rose-400 font-semibold rounded-lg transition text-xs inline-flex items-center gap-1 border border-slate-700"
+                            title={isRtl ? 'زیرِ کفالت افراد درج کریں' : 'Manage Coverage'}
+                          >
+                            <Heart className="w-3.5 h-3.5 text-rose-400" />
+                            <span className="hidden lg:inline">{isRtl ? 'کفالت' : 'Coverage'}</span>
+                          </button>
+
+                          <button
                             onClick={() => setHistoryModalMember(m)}
-                            className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition text-xs inline-flex items-center gap-1"
+                            className="px-2 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition text-xs inline-flex items-center gap-1"
                             title={isRtl ? 'ہسٹری دیکھیں' : 'View Payment History'}
                           >
                             <History className="w-3.5 h-3.5 text-slate-400" />
@@ -635,8 +737,23 @@ export function ExecutivePortal() {
                   className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-100 focus:outline-none focus:border-emerald-500 text-sm"
                 />
               </div>
+
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
+                  {isRtl ? 'پتہ (اختیاری)' : 'Address (Optional)'}
+                </label>
+                <input
+                  type="text"
+                  name="address"
+                  value={formData.address}
+                  onChange={handleFormChange}
+                  placeholder={isRtl ? 'گاؤں / محلہ' : 'Village / Area'}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-100 focus:outline-none focus:border-emerald-500 text-sm"
+                />
+              </div>
             </div>
 
+            {/* Member Category Selection */}
             <div className="bg-slate-950/80 p-4 rounded-xl border border-slate-800 space-y-3">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-bold text-slate-300 uppercase tracking-wider">
@@ -689,18 +806,35 @@ export function ExecutivePortal() {
               </div>
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
-                {isRtl ? 'پتہ (اختیاری)' : 'Address (Optional)'}
-              </label>
-              <input
-                type="text"
-                name="address"
-                value={formData.address}
-                onChange={handleFormChange}
-                placeholder={isRtl ? 'گاؤں / محلہ' : 'Village / Area'}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-100 focus:outline-none focus:border-emerald-500 text-sm"
-              />
+            {/* DEPENDENT COVERAGE SECTION */}
+            <div className="bg-slate-950/80 p-4 rounded-xl border border-slate-800 space-y-3">
+              <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
+                <label className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                  <Heart className="w-4 h-4 text-rose-500" />
+                  {isRtl ? 'زیرِ کفالت افراد کی تعداد (اختیاری)' : 'Dependent Coverage (Optional)'}
+                </label>
+                <span className="text-[11px] text-slate-400">
+                  {isRtl ? 'اصلی ممبر خودکار رجسٹرڈ ہے' : 'Member covered automatically'}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {COVERAGE_KEYS.map((key) => (
+                  <div key={key} className="p-2.5 bg-slate-900 border border-slate-800 rounded-xl space-y-1">
+                    <label className="block text-[11px] font-semibold text-slate-400">
+                      {isRtl ? COVERAGE_LABELS_UR[key] : COVERAGE_LABELS_EN[key]}
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="20"
+                      value={formData.coverage[key] || 0}
+                      onChange={(e) => handleCoverageCountChange(key, e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-slate-100 text-center font-mono text-sm focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
 
             <div className="pt-2 flex justify-end">
@@ -806,6 +940,62 @@ export function ExecutivePortal() {
                 loading={isRecordingPayment}
               >
                 {isRtl ? 'ادائیگی محفوظ کریں' : 'Save Payment & Receipt'}
+              </Button>
+            </div>
+          </form>
+        )}
+      </Dialog>
+
+      {/* DEPENDENT COVERAGE EDIT MODAL */}
+      <Dialog
+        isOpen={!!coverageModalMember}
+        onClose={() => setCoverageModalMember(null)}
+        title={coverageModalMember ? `Dependent Coverage — ${coverageModalMember.name}` : ''}
+        maxWidth="max-w-md"
+      >
+        {coverageModalMember && (
+          <form onSubmit={handleSaveCoverageSubmit} className="space-y-4 py-2">
+            <p className="text-xs text-slate-500">
+              {isRtl
+                ? 'زیرِ کفالت افراد کی تعداد درج کریں (0 سے 20 تک)۔ اصلی ممبر خودکار رجسٹرڈ رہتا ہے۔'
+                : 'Enter counts for covered dependents (0 to 20 per category). Registered member is covered automatically.'}
+            </p>
+
+            {coverageError && (
+              <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-600 text-xs">
+                {coverageError}
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-3">
+              {COVERAGE_KEYS.map((key) => (
+                <div key={key} className="flex items-center justify-between p-2.5 bg-slate-100 dark:bg-slate-800 rounded-xl">
+                  <span className="text-xs font-semibold capitalize text-slate-700 dark:text-slate-300">
+                    {isRtl ? COVERAGE_LABELS_UR[key] : COVERAGE_LABELS_EN[key]}
+                  </span>
+                  <input
+                    type="number"
+                    min="0"
+                    max="20"
+                    value={coverageData[key] || 0}
+                    onChange={(e) =>
+                      setCoverageData((prev) => ({
+                        ...prev,
+                        [key]: Math.max(0, Math.min(20, parseInt(e.target.value) || 0)),
+                      }))
+                    }
+                    className="w-16 px-2 py-1 text-xs text-center font-mono border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                  />
+                </div>
+              ))}
+            </div>
+
+            <div className="pt-2 flex justify-end gap-2 border-t border-slate-100 dark:border-slate-800">
+              <Button type="button" variant="outline" onClick={() => setCoverageModalMember(null)}>
+                {isRtl ? 'منسوخ کریں' : 'Cancel'}
+              </Button>
+              <Button type="submit" variant="primary" loading={savingCoverage}>
+                {isRtl ? 'کفالت محفوظ کریں' : 'Save Coverage'}
               </Button>
             </div>
           </form>
