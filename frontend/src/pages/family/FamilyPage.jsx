@@ -10,7 +10,8 @@ import { Button } from '../../components/common/Button.jsx';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner.jsx';
 import { EmptyState } from '../../components/common/EmptyState.jsx';
 import { formatMobile, formatCoverageSummary, formatMoney } from '../../lib/format.js';
-import { KeyRound, ShieldAlert, Users, TrendingUp, HeartHandshake, Lock, ArrowLeft, ArrowRight, ShieldCheck, UserCheck, AlertTriangle } from 'lucide-react';
+import { KeyRound, ShieldAlert, Users, TrendingUp, HeartHandshake, Lock, ArrowLeft, ArrowRight, ShieldCheck, UserCheck, AlertTriangle, Download } from 'lucide-react';
+import { generateMembersPdf } from '../../lib/pdf.js';
 
 export function FamilyPage() {
   const { t, isRtl } = useI18n();
@@ -34,6 +35,7 @@ export function FamilyPage() {
   // Selected Member Detail State
   const [selectedMember, setSelectedMember] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(false);
 
   // Load summary and member list once token exists
   useEffect(() => {
@@ -105,6 +107,23 @@ export function FamilyPage() {
       setPinError(err.message || t('wrongPin'));
     } finally {
       setPinLoading(false);
+    }
+  };
+
+  const handleDownloadPdf = async () => {
+    try {
+      setPdfLoading(true);
+      // Fetch all registered members to ensure complete export
+      const res = await family.listMembers(token, { search: '', page: 1, pageSize: 9999 });
+      const allMembers = res?.items && res.items.length > 0 ? res.items : members;
+      generateMembersPdf(allMembers, summary);
+    } catch (err) {
+      console.error('Failed to generate PDF:', err);
+      if (members.length > 0) {
+        generateMembersPdf(members, summary);
+      }
+    } finally {
+      setPdfLoading(false);
     }
   };
 
@@ -240,12 +259,24 @@ export function FamilyPage() {
 
       {/* Member Directory Table */}
       <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden">
-        <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
           <div>
             <h3 className="text-lg font-bold text-slate-900 dark:text-white">{t('navMembers')}</h3>
             <p className="text-xs text-slate-500">Read-only view of registered fund members & payment status</p>
           </div>
-          <SearchInput value={search} onChange={setSearch} className="w-full sm:w-72" />
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
+            <SearchInput value={search} onChange={setSearch} className="w-full sm:w-64" />
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={handleDownloadPdf}
+              loading={pdfLoading}
+              className="flex items-center justify-center gap-2 whitespace-nowrap bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs font-semibold px-4 py-2"
+            >
+              <Download className="w-4 h-4 shrink-0" />
+              <span>{t('downloadPdfReport')}</span>
+            </Button>
+          </div>
         </div>
 
         {loading ? (

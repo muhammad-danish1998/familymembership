@@ -84,4 +84,11 @@ export default {
   approvedByAdmin: 'ایڈمن سے منظور شدہ',
   notApprovedByAdmin: 'ایڈمن سے نا منظور شدہ',
   pendingAdminApproval: 'ایڈمن کی منظوری کا منتظر',
+  // PDF Report
+  downloadPdfReport: 'پی ڈی ایف رپورٹ ڈاؤنلوڈ کریں',
+  downloadingPdf: 'پی ڈی ایف تیار ہو رہی ہے...',
+  membersReportTitle: 'خاندانی امدادی فنڈ — ممبران کا مکمل ریکارڈ',
+  totalMembersCount: 'کل ممبران',
+  grandTotal: 'کل میزان',
 };
+

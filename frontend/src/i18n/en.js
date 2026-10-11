@@ -84,4 +84,11 @@ export default {
   approvedByAdmin: 'Approved by Admin',
   notApprovedByAdmin: 'Not Approved by Admin',
   pendingAdminApproval: 'Pending Admin Approval',
+  // PDF Report
+  downloadPdfReport: 'Download PDF Report',
+  downloadingPdf: 'Generating PDF...',
+  membersReportTitle: 'Family Support Fund — Members Record',
+  totalMembersCount: 'Total Members',
+  grandTotal: 'Grand Total',
 };
+

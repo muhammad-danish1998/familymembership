@@ -132,6 +132,7 @@ export const family = {
         name: m.name,
         father_name: m.father_name,
         mobile: m.mobile,
+        join_date: m.join_date,
         status: m.status,
         paid: summary.paid,
         remaining: summary.remaining,

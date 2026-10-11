@@ -12,8 +12,8 @@ import { ConfirmDialog } from '../../components/common/ConfirmDialog.jsx';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner.jsx';
 import { EmptyState } from '../../components/common/EmptyState.jsx';
 import { formatMobile, formatCoverageSummary } from '../../lib/format.js';
-import { COVERAGE_KEYS } from '../../constants/index.js';
-import { UserPlus, Edit, UserCheck, UserX, Heart, ArrowLeft, ArrowRight, Trash2, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { UserPlus, Edit, UserCheck, UserX, Heart, ArrowLeft, ArrowRight, Trash2, CheckCircle, XCircle, Clock, Download } from 'lucide-react';
+import { generateMembersPdf } from '../../lib/pdf.js';
 
 const EXECUTIVE_COLORS = [
   { bg: 'bg-indigo-50 dark:bg-indigo-950/60', text: 'text-indigo-700 dark:text-indigo-300', border: 'border-indigo-200 dark:border-indigo-800', badge: 'bg-indigo-500' },
@@ -48,6 +48,7 @@ export function AdminMembers() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
+  const [pdfLoading, setPdfLoading] = useState(false);
 
   // Dialog States
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -294,6 +295,23 @@ export function AdminMembers() {
     });
   };
 
+  const handleDownloadPdf = async () => {
+    try {
+      setPdfLoading(true);
+      const res = await membersService.list({ search: '', status: 'all', page: 1, pageSize: 9999 });
+      const allMembers = res?.items && res.items.length > 0 ? res.items : items;
+      generateMembersPdf(allMembers);
+      toast.success('Members PDF report downloaded successfully');
+    } catch (err) {
+      console.error('Failed to generate PDF:', err);
+      if (items.length > 0) {
+        generateMembersPdf(items);
+      }
+    } finally {
+      setPdfLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -301,10 +319,21 @@ export function AdminMembers() {
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{t('navMembers')}</h1>
           <p className="text-xs text-slate-500">Manage member directory, dues, coverage & continuation</p>
         </div>
-        <Button variant="primary" onClick={() => { resetForm(); setShowAddDialog(true); }}>
-          <UserPlus className="w-4 h-4" />
-          {t('addMember')}
-        </Button>
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <Button
+            variant="outline"
+            onClick={handleDownloadPdf}
+            loading={pdfLoading}
+            className="flex items-center gap-2"
+          >
+            <Download className="w-4 h-4" />
+            <span>{t('downloadPdfReport')}</span>
+          </Button>
+          <Button variant="primary" onClick={() => { resetForm(); setShowAddDialog(true); }}>
+            <UserPlus className="w-4 h-4" />
+            {t('addMember')}
+          </Button>
+        </div>
       </div>
 
       {/* Pending Submissions Queue */}

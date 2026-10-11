@@ -24,7 +24,9 @@ import {
   Users,
   History,
   Heart,
+  Download,
 } from 'lucide-react';
+import { generateMembersPdf } from '../../lib/pdf.js';
 
 const COVERAGE_LABELS_UR = {
   sons: 'بیٹے',
@@ -502,6 +504,16 @@ export function ExecutivePortal() {
                 className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl transition"
               >
                 <RefreshCw className={`w-4 h-4 ${loadingMembers ? 'animate-spin' : ''}`} />
+              </button>
+
+              <button
+                onClick={() => generateMembersPdf(filteredMembers, null, { filename: `Executive_Members_Report_${session?.name || 'Portal'}.pdf` })}
+                disabled={filteredMembers.length === 0}
+                title={isRtl ? 'پی ڈی ایف رپورٹ ڈاؤنلوڈ کریں' : 'Download PDF Report'}
+                className="px-3 py-2 bg-emerald-700 hover:bg-emerald-600 disabled:opacity-50 text-white text-xs font-semibold rounded-xl transition shadow-xs flex items-center gap-1.5 whitespace-nowrap"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>{isRtl ? 'پی ڈی ایف' : 'PDF'}</span>
               </button>
             </div>
           </div>
