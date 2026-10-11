@@ -85,8 +85,30 @@ CREATE TABLE IF NOT EXISTS public.member_coverage (
     brothers INTEGER NOT NULL DEFAULT 0 CHECK (brothers BETWEEN 0 AND 20),
     sisters INTEGER NOT NULL DEFAULT 0 CHECK (sisters BETWEEN 0 AND 20),
     other_dependents INTEGER NOT NULL DEFAULT 0 CHECK (other_dependents BETWEEN 0 AND 20),
+    other INTEGER NOT NULL DEFAULT 0,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Ensure other and other_dependents are always in sync
+ALTER TABLE public.member_coverage ADD COLUMN IF NOT EXISTS other_dependents INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE public.member_coverage ADD COLUMN IF NOT EXISTS other INTEGER NOT NULL DEFAULT 0;
+
+CREATE OR REPLACE FUNCTION public.sync_member_coverage_columns()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.other IS NOT NULL AND NEW.other != 0 AND (NEW.other_dependents IS NULL OR NEW.other_dependents = 0) THEN
+        NEW.other_dependents := NEW.other;
+    ELSIF NEW.other_dependents IS NOT NULL THEN
+        NEW.other := NEW.other_dependents;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_sync_member_coverage_columns ON public.member_coverage;
+CREATE TRIGGER trg_sync_member_coverage_columns
+BEFORE INSERT OR UPDATE ON public.member_coverage
+FOR EACH ROW EXECUTE FUNCTION public.sync_member_coverage_columns();
 
 CREATE TABLE IF NOT EXISTS public.payments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

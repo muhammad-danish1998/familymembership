@@ -812,6 +812,7 @@ export const executives = {
 
     try {
       const covData = memberData.coverage || {};
+      const otherVal = Math.max(0, Math.min(20, Number(covData.other_dependents ?? covData.other ?? 0)));
       await supabase.from('member_coverage').insert([
         {
           member_id: newMem.id,
@@ -822,7 +823,7 @@ export const executives = {
           mother: Math.max(0, Math.min(20, Number(covData.mother || 0))),
           brothers: Math.max(0, Math.min(20, Number(covData.brothers || 0))),
           sisters: Math.max(0, Math.min(20, Number(covData.sisters || 0))),
-          other: Math.max(0, Math.min(20, Number(covData.other || 0))),
+          other_dependents: otherVal,
         },
       ]);
     } catch {
@@ -844,7 +845,42 @@ export const executives = {
       throw new Error('You are only allowed to manage coverage for members submitted by you.');
     }
 
+    const otherVal = Math.max(0, Math.min(20, Number(coverageCounts.other_dependents ?? coverageCounts.other ?? 0)));
+
+    // Try save_coverage RPC first
+    try {
+      const { error: rpcErr } = await supabase.rpc('save_coverage', {
+        p_member_id: memberId,
+        p_sons: Math.max(0, Math.min(20, Number(coverageCounts.sons || 0))),
+        p_daughters: Math.max(0, Math.min(20, Number(coverageCounts.daughters || 0))),
+        p_wife: Math.max(0, Math.min(20, Number(coverageCounts.wife || 0))),
+        p_father: Math.max(0, Math.min(20, Number(coverageCounts.father || 0))),
+        p_mother: Math.max(0, Math.min(20, Number(coverageCounts.mother || 0))),
+        p_brothers: Math.max(0, Math.min(20, Number(coverageCounts.brothers || 0))),
+        p_sisters: Math.max(0, Math.min(20, Number(coverageCounts.sisters || 0))),
+        p_other_dependents: otherVal,
+      });
+      if (!rpcErr) {
+        return {
+          member_id: memberId,
+          sons: Number(coverageCounts.sons || 0),
+          daughters: Number(coverageCounts.daughters || 0),
+          wife: Number(coverageCounts.wife || 0),
+          father: Number(coverageCounts.father || 0),
+          mother: Number(coverageCounts.mother || 0),
+          brothers: Number(coverageCounts.brothers || 0),
+          sisters: Number(coverageCounts.sisters || 0),
+          other: otherVal,
+          other_dependents: otherVal,
+        };
+      }
+    } catch {
+      // Fall through to table upsert
+    }
+
+    // Direct table upsert using other_dependents (the exact column in member_coverage table)
     const cleaned = {
+      member_id: memberId,
       sons: Math.max(0, Math.min(20, Number(coverageCounts.sons || 0))),
       daughters: Math.max(0, Math.min(20, Number(coverageCounts.daughters || 0))),
       wife: Math.max(0, Math.min(20, Number(coverageCounts.wife || 0))),
@@ -852,16 +888,31 @@ export const executives = {
       mother: Math.max(0, Math.min(20, Number(coverageCounts.mother || 0))),
       brothers: Math.max(0, Math.min(20, Number(coverageCounts.brothers || 0))),
       sisters: Math.max(0, Math.min(20, Number(coverageCounts.sisters || 0))),
-      other: Math.max(0, Math.min(20, Number(coverageCounts.other || 0))),
+      other_dependents: otherVal,
     };
 
     const { data, error } = await supabase
       .from('member_coverage')
-      .upsert({ member_id: memberId, ...cleaned })
+      .upsert(cleaned)
       .select()
       .single();
 
-    if (error) throw new Error(error.message);
+    if (error) {
+      // Fallback if other column is present instead
+      if (error.message?.includes('other_dependents')) {
+        const fallback = { ...cleaned };
+        delete fallback.other_dependents;
+        fallback.other = otherVal;
+        const { data: fbData, error: fbErr } = await supabase
+          .from('member_coverage')
+          .upsert(fallback)
+          .select()
+          .single();
+        if (fbErr) throw new Error(fbErr.message);
+        return fbData;
+      }
+      throw new Error(error.message);
+    }
     return data;
   },
 
@@ -880,8 +931,22 @@ export const executives = {
     return (membersList || []).map((m) => {
       const mPayments = (paymentsList || []).filter((p) => p.member_id === m.id);
       const summary = calculateMemberSummary(m, mPayments);
+      const rawCov = Array.isArray(m.member_coverage) ? (m.member_coverage[0] || {}) : (m.member_coverage || {});
+      const otherVal = Number(rawCov.other_dependents ?? rawCov.other ?? 0);
+
       return {
         ...m,
+        coverage: {
+          sons: Number(rawCov.sons || 0),
+          daughters: Number(rawCov.daughters || 0),
+          wife: Number(rawCov.wife || 0),
+          father: Number(rawCov.father || 0),
+          mother: Number(rawCov.mother || 0),
+          brothers: Number(rawCov.brothers || 0),
+          sisters: Number(rawCov.sisters || 0),
+          other: otherVal,
+          other_dependents: otherVal,
+        },
         summary,
         payments: mPayments.map((p) => ({
           ...p,
