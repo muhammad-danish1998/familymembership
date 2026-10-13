@@ -397,6 +397,8 @@ export const members = {
     m.mobile = data.mobile.trim();
     m.cnic = data.cnic ? data.cnic.trim() : '';
     m.address = data.address ? data.address.trim() : '';
+    if (data.join_date) m.join_date = data.join_date;
+    if (data.opening_balance !== undefined) m.opening_balance = Number(data.opening_balance || 0);
 
     writeAudit(store, 'MEMBER_EDITED', `Updated details for member "${m.name}".`);
     saveStore(store);
@@ -996,6 +998,47 @@ export const executives = {
       });
 
     return myMembers;
+  },
+
+  async updateMember(execId, pin, memberId, memberData) {
+    await delay();
+    const store = getStore();
+    const exec = store.executives.find((e) => e.id === execId);
+    if (!exec || !exec.active) throw { code: 'VALIDATION', message: 'Executive account not found or inactive.' };
+    const cleanPin = String(pin).trim();
+    if (exec.pin && String(exec.pin).trim() !== cleanPin) {
+      throw { code: 'VALIDATION', message: 'Incorrect PIN.' };
+    }
+
+    const member = store.members.find((m) => m.id === memberId);
+    if (!member) throw { code: 'VALIDATION', message: 'Member not found.' };
+
+    if (member.submitted_by_executive_id !== execId) {
+      throw {
+        code: 'VALIDATION',
+        message: 'You are only allowed to edit members submitted by you.',
+      };
+    }
+
+    const isApproved = member.approval_status === 'approved';
+
+    member.name = memberData.name.trim();
+    member.father_name = memberData.father_name.trim();
+    member.mobile = memberData.mobile.trim();
+    member.cnic = memberData.cnic ? memberData.cnic.trim() : '';
+    if (memberData.join_date) member.join_date = memberData.join_date;
+
+    // Only allow updating amount if not yet approved
+    if (!isApproved && memberData.opening_balance !== undefined) {
+      member.opening_balance = Number(memberData.opening_balance || 0);
+    }
+
+    // Always reset to pending for Admin re-approval!
+    member.approval_status = 'pending';
+
+    writeAudit(store, 'MEMBER_EDITED_BY_EXECUTIVE', `Executive "${exec.name}" edited member "${member.name}". Re-approval required.`);
+    saveStore(store);
+    return member;
   },
 
   async addPayment(execId, pin, { memberId, amount, date, note }) {

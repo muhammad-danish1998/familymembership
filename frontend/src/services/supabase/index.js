@@ -328,16 +328,40 @@ export const members = {
     return { id: memberId, ...memberData };
   },
   update: async (id, memberData) => {
-    const { error } = await supabase.rpc('edit_member', {
-      p_member_id: id,
-      p_name: memberData.name,
-      p_father_name: memberData.father_name,
-      p_mobile: memberData.mobile,
-      p_cnic: memberData.cnic || null,
-      p_address: memberData.address || null,
-      p_join_date: memberData.join_date
-    });
-    if (error) throw new Error(error.message);
+    const targetId = extractId(id);
+    const payload = {
+      p_member_id: targetId,
+      p_name: memberData.name.trim(),
+      p_father_name: memberData.father_name.trim(),
+      p_mobile: memberData.mobile.trim(),
+      p_cnic: memberData.cnic ? memberData.cnic.trim() : null,
+      p_address: memberData.address ? memberData.address.trim() : null,
+      p_join_date: memberData.join_date,
+    };
+    if (memberData.opening_balance !== undefined) {
+      payload.p_opening_balance = Number(memberData.opening_balance || 0);
+    }
+
+    try {
+      const { error } = await supabase.rpc('edit_member', payload);
+      if (!error) return;
+    } catch {
+      // Fall through to direct table update
+    }
+
+    const updateObj = {
+      name: memberData.name.trim(),
+      father_name: memberData.father_name.trim(),
+      mobile: memberData.mobile.trim(),
+      cnic: memberData.cnic ? memberData.cnic.trim() : null,
+      address: memberData.address ? memberData.address.trim() : null,
+      join_date: memberData.join_date,
+    };
+    if (memberData.opening_balance !== undefined) {
+      updateObj.opening_balance = Number(memberData.opening_balance || 0);
+    }
+    const { error: directErr } = await supabase.from('members').update(updateObj).eq('id', targetId);
+    if (directErr) throw new Error(directErr.message);
   },
   edit: async (id, memberData) => {
     return members.update(id, memberData);
@@ -955,6 +979,79 @@ export const executives = {
         })),
       };
     });
+  },
+
+  updateMember: async (execId, pin, memberId, memberData) => {
+    const targetId = extractId(execId);
+    // 1. Verify executive
+    const { data: exec, error: execErr } = await supabase
+      .from('executives')
+      .select('id, name, active, pin_code, pin_hash')
+      .eq('id', targetId)
+      .single();
+
+    if (execErr || !exec || !exec.active) throw new Error('Executive account not found or inactive');
+    const cleanPin = String(pin).trim();
+    if (exec.pin_code && exec.pin_code.trim() !== cleanPin) {
+      throw new Error('Incorrect Executive PIN.');
+    }
+
+    // 2. Verify member ownership
+    const { data: m, error: mErr } = await supabase
+      .from('members')
+      .select('id, submitted_by_executive_id, approval_status, opening_balance')
+      .eq('id', memberId)
+      .single();
+
+    if (mErr || !m) throw new Error('Member not found');
+    if (m.submitted_by_executive_id !== targetId) {
+      throw new Error('You are only allowed to edit members submitted by you.');
+    }
+
+    const isApproved = m.approval_status === 'approved';
+
+    // Try RPC first if available
+    try {
+      const { error: rpcErr } = await supabase.rpc('executive_update_member', {
+        p_executive_id: targetId,
+        p_pin: cleanPin,
+        p_member_id: memberId,
+        p_name: memberData.name.trim(),
+        p_father_name: memberData.father_name.trim(),
+        p_mobile: memberData.mobile.trim(),
+        p_cnic: memberData.cnic ? memberData.cnic.trim() : null,
+        p_join_date: memberData.join_date,
+        p_opening_balance: !isApproved && memberData.opening_balance !== undefined ? Number(memberData.opening_balance || 0) : null,
+      });
+      if (!rpcErr) {
+        return { id: memberId, ...memberData, approval_status: 'pending' };
+      }
+    } catch {
+      // Fall through to direct table update
+    }
+
+    const updates = {
+      name: memberData.name.trim(),
+      father_name: memberData.father_name.trim(),
+      mobile: memberData.mobile.trim(),
+      cnic: memberData.cnic ? memberData.cnic.trim() : null,
+      join_date: memberData.join_date,
+      approval_status: 'pending', // Re-approval required!
+    };
+
+    if (!isApproved && memberData.opening_balance !== undefined) {
+      updates.opening_balance = Number(memberData.opening_balance || 0);
+    }
+
+    const { data: updated, error: updateErr } = await supabase
+      .from('members')
+      .update(updates)
+      .eq('id', memberId)
+      .select()
+      .single();
+
+    if (updateErr) throw new Error(updateErr.message);
+    return updated;
   },
 
   addPayment: async (execId, pin, { memberId, amount, date, note }) => {

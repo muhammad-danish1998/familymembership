@@ -394,6 +394,15 @@ export function AdminMembers() {
 
                 <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
                   <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/40"
+                    onClick={() => openEdit(p)}
+                  >
+                    <Edit className="w-3.5 h-3.5 mr-1" />
+                    Edit / Correct Amount
+                  </Button>
+                  <Button
                     variant="ghost"
                     size="sm"
                     className="text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40"
@@ -695,7 +704,30 @@ export function AdminMembers() {
                 required
               />
             </div>
-            {!editMember && (
+            {editMember ? (
+              <div className="sm:col-span-2 bg-amber-50/70 dark:bg-amber-950/40 p-3.5 rounded-xl border border-amber-200 dark:border-amber-800/80 space-y-2 mt-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+                    Entry Fee / Carried Dues Amount (Rs.)
+                  </label>
+                  <span className="text-[11px] text-amber-700 dark:text-amber-400 font-bold bg-amber-100 dark:bg-amber-900/60 px-2 py-0.5 rounded-full">
+                    Admin Amount Correction
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-500">
+                  You can correct or adjust the initial fee or carried dues submitted by an executive or entered previously.
+                </p>
+                <div>
+                  <input
+                    type="number"
+                    min="0"
+                    value={formData.opening_balance}
+                    onChange={(e) => setFormData({ ...formData, opening_balance: e.target.value })}
+                    className="w-full px-3 py-2 text-sm font-mono border border-amber-300 dark:border-amber-700 rounded-lg dark:bg-slate-800 bg-white"
+                  />
+                </div>
+              </div>
+            ) : (
               <div className="sm:col-span-2 bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 space-y-3 mt-2">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">

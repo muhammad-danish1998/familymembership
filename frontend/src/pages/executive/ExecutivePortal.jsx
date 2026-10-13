@@ -25,6 +25,8 @@ import {
   History,
   Heart,
   Download,
+  Edit,
+  Lock,
 } from 'lucide-react';
 import { generateMembersPdf } from '../../lib/pdf.js';
 
@@ -105,6 +107,19 @@ export function ExecutivePortal() {
   });
   const [savingCoverage, setSavingCoverage] = useState(false);
   const [coverageError, setCoverageError] = useState('');
+
+  // Edit Member Modal State
+  const [editModalMember, setEditModalMember] = useState(null);
+  const [editFormData, setEditFormData] = useState({
+    name: '',
+    father_name: '',
+    mobile: '',
+    cnic: '',
+    join_date: '',
+    opening_balance: 0,
+  });
+  const [editError, setEditError] = useState('');
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
 
   // Submission Form State
   const [formData, setFormData] = useState({
@@ -297,6 +312,46 @@ export function ExecutivePortal() {
       setCoverageError(err.message || (isRtl ? 'کفالت کی معلومات محفوظ نہ ہو سکیں' : 'Failed to save dependent coverage'));
     } finally {
       setSavingCoverage(false);
+    }
+  };
+
+  const handleOpenEditModal = (member) => {
+    setEditModalMember(member);
+    setEditFormData({
+      name: member.name || '',
+      father_name: member.father_name || '',
+      mobile: member.mobile || '',
+      cnic: member.cnic || '',
+      join_date: member.join_date || new Date().toISOString().split('T')[0],
+      opening_balance: member.opening_balance || 0,
+    });
+    setEditError('');
+  };
+
+  const handleSaveEditSubmit = async (e) => {
+    e.preventDefault();
+    setEditError('');
+
+    if (!editFormData.name || !editFormData.father_name || !editFormData.mobile) {
+      setEditError(isRtl ? 'نام، ولدیت اور موبائل نمبر لازمی ہیں' : 'Name, Father Name, and Mobile Number are required.');
+      return;
+    }
+
+    setIsSavingEdit(true);
+    try {
+      await executives.updateMember(id, pin.trim(), editModalMember.id, editFormData);
+      const updatedName = editFormData.name;
+      setEditModalMember(null);
+      setSubmitSuccess(
+        isRtl
+          ? `رکن "${updatedName}" کی تفصیلات تبدیل کر کے ایڈمن کی دوبارہ منظوری کے لیے بھیج دی گئی ہیں۔`
+          : `Member "${updatedName}" updated and submitted for Admin re-approval.`
+      );
+      await loadMyMembers();
+    } catch (err) {
+      setEditError(err.message || (isRtl ? 'تبدیلی محفوظ نہ ہو سکی' : 'Failed to update member'));
+    } finally {
+      setIsSavingEdit(false);
     }
   };
 
@@ -617,6 +672,15 @@ export function ExecutivePortal() {
                           >
                             <CreditCard className="w-3.5 h-3.5" />
                             <span>{isRtl ? 'رقم جمع کریں' : 'Record Payment'}</span>
+                          </button>
+
+                          <button
+                            onClick={() => handleOpenEditModal(m)}
+                            className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-sky-400 font-semibold rounded-lg transition text-xs inline-flex items-center gap-1 border border-slate-700"
+                            title={isRtl ? 'رکن کی معلومات تبدیل کریں' : 'Edit Member'}
+                          >
+                            <Edit className="w-3.5 h-3.5 text-sky-400" />
+                            <span className="hidden lg:inline">{isRtl ? 'تبدیل کریں' : 'Edit'}</span>
                           </button>
 
                           <button
@@ -1071,6 +1135,155 @@ export function ExecutivePortal() {
             </Button>
           </div>
         </div>
+      </Dialog>
+
+      {/* EDIT MEMBER MODAL */}
+      <Dialog
+        isOpen={!!editModalMember}
+        onClose={() => setEditModalMember(null)}
+        title={editModalMember ? (isRtl ? `رکن کی معلومات تبدیل کریں — ${editModalMember.name}` : `Edit Member — ${editModalMember.name}`) : ''}
+        maxWidth="max-w-md"
+      >
+        {editModalMember && (
+          <form onSubmit={handleSaveEditSubmit} className="space-y-4 py-2">
+            {/* Notice Alert */}
+            <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-300 text-xs flex items-start gap-2">
+              <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+              <span>
+                {isRtl
+                  ? 'توجہ: معلومات میں تبدیلی کے بعد یہ رکن دوبارہ ایڈمن کی منظوری کے لیے زیر التواء (Pending) ہو جائے گا۔'
+                  : 'Notice: Editing any detail will submit this member for Admin re-approval.'}
+              </span>
+            </div>
+
+            {editError && (
+              <div className="p-3 bg-rose-500/10 border border-rose-500/30 text-rose-300 rounded-xl text-xs flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+                <span>{editError}</span>
+              </div>
+            )}
+
+            {/* Name & Father Name */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  {isRtl ? 'رکن کا نام *' : 'Member Name *'}
+                </label>
+                <input
+                  type="text"
+                  value={editFormData.name}
+                  onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+                  className="w-full px-3 py-2 text-xs bg-slate-800 border border-slate-700 rounded-lg text-white"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  {isRtl ? 'والد کا نام *' : 'Father Name *'}
+                </label>
+                <input
+                  type="text"
+                  value={editFormData.father_name}
+                  onChange={(e) => setEditFormData({ ...editFormData, father_name: e.target.value })}
+                  className="w-full px-3 py-2 text-xs bg-slate-800 border border-slate-700 rounded-lg text-white"
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Mobile & CNIC */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  {isRtl ? 'موبائل نمبر *' : 'Mobile Number *'}
+                </label>
+                <input
+                  type="text"
+                  value={editFormData.mobile}
+                  onChange={(e) => setEditFormData({ ...editFormData, mobile: e.target.value })}
+                  placeholder="03001234567"
+                  className="w-full px-3 py-2 text-xs font-mono bg-slate-800 border border-slate-700 rounded-lg text-white"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  {isRtl ? 'شناختی کارڈ نمبر (اختیاری)' : 'CNIC (Optional)'}
+                </label>
+                <input
+                  type="text"
+                  value={editFormData.cnic}
+                  onChange={(e) => setEditFormData({ ...editFormData, cnic: e.target.value })}
+                  placeholder="35202-1234567-1"
+                  className="w-full px-3 py-2 text-xs font-mono bg-slate-800 border border-slate-700 rounded-lg text-white"
+                />
+              </div>
+            </div>
+
+            {/* Join Date & Amount */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  {isRtl ? 'شمولیت کی تاریخ *' : 'Joining Date *'}
+                </label>
+                <input
+                  type="date"
+                  value={editFormData.join_date}
+                  onChange={(e) => setEditFormData({ ...editFormData, join_date: e.target.value })}
+                  className="w-full px-3 py-2 text-xs bg-slate-800 border border-slate-700 rounded-lg text-white"
+                  required
+                />
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-semibold text-slate-300">
+                    {isRtl ? 'ابتدائی فیس / بقایا' : 'Entry Fee / Balance'}
+                  </label>
+                  {editModalMember.approval_status === 'approved' ? (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-rose-400">
+                      <Lock className="w-3 h-3" />
+                      {isRtl ? 'مقفل (منظور شدہ)' : 'Locked'}
+                    </span>
+                  ) : (
+                    <span className="text-[10px] text-amber-400">
+                      {isRtl ? 'تبدیل ممکن' : 'Editable'}
+                    </span>
+                  )}
+                </div>
+                <input
+                  type="number"
+                  min="0"
+                  value={editFormData.opening_balance}
+                  onChange={(e) => setEditFormData({ ...editFormData, opening_balance: e.target.value })}
+                  disabled={editModalMember.approval_status === 'approved'}
+                  className={`w-full px-3 py-2 text-xs font-mono rounded-lg border ${
+                    editModalMember.approval_status === 'approved'
+                      ? 'bg-slate-950 border-slate-800 text-slate-500 cursor-not-allowed opacity-75'
+                      : 'bg-slate-800 border-slate-700 text-white'
+                  }`}
+                />
+                {editModalMember.approval_status === 'approved' && (
+                  <p className="text-[10px] text-slate-400 mt-1">
+                    {isRtl
+                      ? 'منظوری کے بعد رقم مقفل ہے۔ صرف ایڈمن ہی تبدیلی کر سکتا ہے۔'
+                      : 'Amount is locked after Admin approval. Only Admin can correct the amount.'}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Buttons */}
+            <div className="flex justify-end gap-2 pt-4 border-t border-slate-800">
+              <Button type="button" variant="outline" onClick={() => setEditModalMember(null)}>
+                {isRtl ? 'منسوخ کریں' : 'Cancel'}
+              </Button>
+              <Button type="submit" variant="primary" loading={isSavingEdit}>
+                {isRtl ? 'محفوظ کریں اور منظوری کے لیے بھیجیں' : 'Save & Submit for Re-Approval'}
+              </Button>
+            </div>
+          </form>
+        )}
       </Dialog>
 
       {/* PAYMENT HISTORY DRAWER MODAL */}

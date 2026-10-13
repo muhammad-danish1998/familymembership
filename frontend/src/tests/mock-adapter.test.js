@@ -127,12 +127,35 @@ describe('Phase A Mock Service Adapter Tests', () => {
     const foundPending = pendingList.find((p) => p.id === submitted.id);
     expect(foundPending).toBeDefined();
 
-    // 7. Admin approve submission
+    // 7. Admin edit member profile and correct opening_balance amount
+    const adminEdited = await members.edit(submitted.id, {
+      name: 'Executive Test Member Corrected',
+      father_name: 'Exec Father Corrected',
+      mobile: '03009998877',
+      join_date: '2026-01-01',
+      opening_balance: 2000, // Corrected by Admin
+    });
+    expect(adminEdited.name).toBe('Executive Test Member Corrected');
+    expect(adminEdited.opening_balance).toBe(2000);
+
+    // 8. Admin approve submission
     const approved = await members.approveSubmission(submitted.id);
     expect(approved.approval_status).toBe('approved');
     expect(approved.status).toBe('active');
 
-    // 8. Admin remove executive
+    // 9. Executive edit after approval: amount is locked, profile fields update, status resets to pending
+    const execEdited = await executives.updateMember('exec-1', '5555', submitted.id, {
+      name: 'Executive Re-edited Member',
+      father_name: 'Exec Father',
+      mobile: '03009998877',
+      join_date: '2026-01-01',
+      opening_balance: 9999, // Should be ignored because member was approved
+    });
+    expect(execEdited.name).toBe('Executive Re-edited Member');
+    expect(execEdited.opening_balance).toBe(2000); // Amount remained locked!
+    expect(execEdited.approval_status).toBe('pending'); // Requires re-approval!
+
+    // 10. Admin remove executive
     const newExec = await executives.add('Temp Exec');
     await executives.remove(newExec.id);
     const updatedList = await executives.list();
