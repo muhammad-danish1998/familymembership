@@ -8,7 +8,7 @@ import { formatDate } from './dates.js';
  * containing all member records, joining dates, total paid, remaining dues,
  * along with calculated sums and summary stats.
  */
-export function generateMembersPdf(members = [], fundSummary = null, options = {}) {
+export function generateMembersPdf(members = [], _fundSummary = null, options = {}) {
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
@@ -221,7 +221,6 @@ export function generateMembersPdf(members = [], fundSummary = null, options = {
     },
     didDrawPage: (data) => {
       // Footer on every page
-      const pageNumber = doc.internal.getNumberOfPages();
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(8);
       doc.setTextColor(148, 163, 184); // Slate-400

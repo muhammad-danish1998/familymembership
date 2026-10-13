@@ -12,6 +12,7 @@ import { ConfirmDialog } from '../../components/common/ConfirmDialog.jsx';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner.jsx';
 import { EmptyState } from '../../components/common/EmptyState.jsx';
 import { formatMobile, formatCoverageSummary } from '../../lib/format.js';
+import { COVERAGE_KEYS } from '../../constants/index.js';
 import { UserPlus, Edit, UserCheck, UserX, Heart, ArrowLeft, ArrowRight, Trash2, CheckCircle, XCircle, Clock, Download } from 'lucide-react';
 import { generateMembersPdf } from '../../lib/pdf.js';
 

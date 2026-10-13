@@ -917,7 +917,7 @@ export const executives = {
     return data;
   },
 
-  getMyMembers: async (execId, pin) => {
+  getMyMembers: async (execId, _pin) => {
     const targetId = extractId(execId);
     const { data: membersList, error } = await supabase
       .from('members')
