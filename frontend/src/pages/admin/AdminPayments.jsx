@@ -10,7 +10,7 @@ import { Dialog } from '../../components/common/Dialog.jsx';
 import { MemberPicker } from '../../components/common/MemberPicker.jsx';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner.jsx';
 import { EmptyState } from '../../components/common/EmptyState.jsx';
-import { CreditCard, RotateCcw, Receipt, Copy, Check, MessageSquare, ArrowLeft, ArrowRight } from 'lucide-react';
+import { CreditCard, RotateCcw, Receipt, Copy, Check, MessageSquare, ArrowLeft, ArrowRight, Edit } from 'lucide-react';
 
 export function AdminPayments() {
   const { t, isRtl } = useI18n();
@@ -25,6 +25,14 @@ export function AdminPayments() {
 
   // Modal States
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [editPayment, setEditPayment] = useState(null);
+  const [editFormData, setEditFormData] = useState({
+    amount: '',
+    date: '',
+    executiveId: '',
+    note: '',
+  });
+  const [editSubmitting, setEditSubmitting] = useState(false);
   const [reversePaymentId, setReversePaymentId] = useState(null);
   const [receiptData, setReceiptData] = useState(null);
   const [copied, setCopied] = useState(false);
@@ -121,6 +129,41 @@ export function AdminPayments() {
     }
   };
 
+  const openEditPayment = (p) => {
+    setEditPayment(p);
+    setEditFormData({
+      amount: p.amount,
+      date: p.payment_date,
+      executiveId: p.executive_id || '',
+      note: p.note || '',
+    });
+  };
+
+  const handleEditPaymentSubmit = async (e) => {
+    e.preventDefault();
+    if (!editPayment) return;
+    if (!editFormData.amount || Number(editFormData.amount) <= 0) {
+      toast.error('Please enter a valid payment amount > 0.');
+      return;
+    }
+    setEditSubmitting(true);
+    try {
+      await paymentsService.edit(editPayment.id, {
+        amount: editFormData.amount,
+        date: editFormData.date,
+        executiveId: editFormData.executiveId || null,
+        note: editFormData.note,
+      });
+      toast.success(`Payment #${editPayment.id} updated successfully.`);
+      setEditPayment(null);
+      fetchPayments();
+    } catch (err) {
+      toast.error(err.message || 'Failed to edit payment.');
+    } finally {
+      setEditSubmitting(false);
+    }
+  };
+
   const openReceipt = async (paymentId) => {
     try {
       const rc = await paymentsService.receipt(paymentId);
@@ -197,6 +240,9 @@ export function AdminPayments() {
                     <td className="px-6 py-4 text-right rtl:text-left space-x-1 rtl:space-x-reverse">
                       {p.type === 'payment' && (
                         <>
+                          <Button variant="ghost" size="sm" onClick={() => openEditPayment(p)} title="Edit Payment">
+                            <Edit className="w-4 h-4 text-sky-600 dark:text-sky-400" />
+                          </Button>
                           <Button variant="ghost" size="sm" onClick={() => openReceipt(p.id)} title="View Receipt">
                             <Receipt className="w-4 h-4 text-emerald-600" />
                           </Button>
@@ -311,6 +357,84 @@ export function AdminPayments() {
             <Button variant="primary" type="submit" loading={submitting}>{t('save')}</Button>
           </div>
         </form>
+      </Dialog>
+
+      {/* Edit Payment Dialog */}
+      <Dialog isOpen={!!editPayment} onClose={() => setEditPayment(null)} title="Edit Payment Record">
+        {editPayment && (
+          <form onSubmit={handleEditPaymentSubmit} className="space-y-4 py-2">
+            <div className="p-3 bg-sky-50 dark:bg-sky-950/40 rounded-xl text-xs space-y-1 border border-sky-200 dark:border-sky-800">
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500">Member:</span>
+                <span className="font-bold text-slate-900 dark:text-white">{editPayment.member_name}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500">Transaction ID:</span>
+                <span className="font-mono text-slate-700 dark:text-slate-300">#{editPayment.id}</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold mb-1">{t('amount')} (Rs.) *</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={editFormData.amount}
+                  onChange={(e) => setEditFormData({ ...editFormData, amount: e.target.value })}
+                  className="w-full px-3 py-2 text-sm font-mono border border-slate-300 dark:border-slate-700 rounded-lg dark:bg-slate-800"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold mb-1">{t('date')} *</label>
+                <input
+                  type="date"
+                  value={editFormData.date}
+                  onChange={(e) => setEditFormData({ ...editFormData, date: e.target.value })}
+                  className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-700 rounded-lg dark:bg-slate-800"
+                  required
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold mb-1">Received By (Collector)</label>
+              <select
+                value={editFormData.executiveId}
+                onChange={(e) => setEditFormData({ ...editFormData, executiveId: e.target.value })}
+                className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-700 rounded-lg dark:bg-slate-800"
+              >
+                <option value="">Admin Directly (Default)</option>
+                {executives.map((ex) => (
+                  <option key={ex.id} value={ex.id}>
+                    {ex.name} (Executive)
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold mb-1">{t('notes')} / Reference (Optional)</label>
+              <input
+                type="text"
+                value={editFormData.note}
+                onChange={(e) => setEditFormData({ ...editFormData, note: e.target.value })}
+                placeholder="Payment reference or bank transfer note..."
+                className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-700 rounded-lg dark:bg-slate-800"
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-4 border-t border-slate-100 dark:border-slate-800">
+              <Button variant="outline" type="button" onClick={() => setEditPayment(null)}>
+                {t('cancel')}
+              </Button>
+              <Button variant="primary" type="submit" loading={editSubmitting}>
+                Save Changes
+              </Button>
+            </div>
+          </form>
+        )}
       </Dialog>
 
       {/* Reverse Payment Dialog (BR-12) */}

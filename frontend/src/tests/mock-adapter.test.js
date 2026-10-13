@@ -44,6 +44,37 @@ describe('Phase A Mock Service Adapter Tests', () => {
     });
   });
 
+  it('Admin can edit payment record and cannot edit reversals', async () => {
+    const pay = await payments.add({
+      memberId: 'mem-1',
+      amount: 2000,
+      date: '2026-03-01',
+      note: 'Original note',
+    });
+    expect(pay.amount).toBe(2000);
+
+    const edited = await payments.edit(pay.id, {
+      amount: 2500,
+      date: '2026-03-05',
+      note: 'Updated note by admin',
+    });
+    expect(edited.amount).toBe(2500);
+    expect(edited.payment_date).toBe('2026-03-05');
+    expect(edited.note).toBe('Updated note by admin');
+
+    // Invalid amount check
+    await expect(
+      payments.edit(pay.id, { amount: -500 })
+    ).rejects.toMatchObject({ code: 'AMOUNT_INVALID' });
+
+    // Reverse the payment
+    const rev = await payments.reverse(pay.id, 'Reversal test');
+    // Cannot edit a reversal transaction directly
+    await expect(
+      payments.edit(rev.id, { amount: 1000 })
+    ).rejects.toMatchObject({ code: 'VALIDATION' });
+  });
+
   it('Death case workflow & duplicate prevention (BR-22)', async () => {
     const newCase = await cases.register({
       member_id: 'mem-1',

@@ -174,7 +174,18 @@ export function AdminMembers() {
     setSubmitting(true);
     try {
       await membersService.edit(editMember.id, formData, { confirmDuplicate: confirmDup });
-      toast.success(`Member "${formData.name}" updated.`);
+
+      // Update status if changed
+      if (formData.status && formData.status !== editMember.status) {
+        await membersService.setStatus(editMember.id, formData.status);
+      }
+
+      // Update coverage if provided
+      if (formData.coverage) {
+        await membersService.saveCoverage(editMember.id, formData.coverage);
+      }
+
+      toast.success(`Member "${formData.name}" full profile updated successfully.`);
       setEditMember(null);
       setDuplicateWarning(null);
       fetchMembers();
@@ -262,6 +273,17 @@ export function AdminMembers() {
       join_date: new Date().toISOString().split('T')[0],
       opening_balance: 2000,
       memberType: 'new',
+      status: 'active',
+      coverage: {
+        sons: 0,
+        daughters: 0,
+        wife: 0,
+        father: 0,
+        mother: 0,
+        brothers: 0,
+        sisters: 0,
+        other: 0,
+      },
     });
   };
 
@@ -275,6 +297,17 @@ export function AdminMembers() {
       address: m.address || '',
       join_date: m.join_date,
       opening_balance: m.opening_balance || 0,
+      status: m.status || 'active',
+      coverage: {
+        sons: m.coverage?.sons || 0,
+        daughters: m.coverage?.daughters || 0,
+        wife: m.coverage?.wife || 0,
+        father: m.coverage?.father || 0,
+        mother: m.coverage?.mother || 0,
+        brothers: m.coverage?.brothers || 0,
+        sisters: m.coverage?.sisters || 0,
+        other: m.coverage?.other || m.coverage?.other_dependents || 0,
+      },
     });
   };
 
@@ -472,8 +505,11 @@ export function AdminMembers() {
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                   {items.map((m) => (
                     <tr key={m.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
-                      <td className="px-6 py-4">
-                        <div className="font-semibold text-slate-900 dark:text-white">{m.name}</div>
+                      <td className="px-6 py-4 cursor-pointer group" onClick={() => openEdit(m)} title="Click to edit full profile">
+                        <div className="font-semibold text-slate-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors flex items-center gap-1.5">
+                          <span>{m.name}</span>
+                          <Edit className="w-3.5 h-3.5 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </div>
                         <div className="text-xs text-slate-500">S/o {m.father_name} · Joined <DateDisplay date={m.join_date} /></div>
                         {(() => {
                           const execName = m.submitted_by_executive_name || (m.submitted_by_executive_id ? 'Executive' : null);
@@ -704,6 +740,21 @@ export function AdminMembers() {
                 required
               />
             </div>
+            {editMember && (
+              <div>
+                <label className="block text-xs font-semibold mb-1">Membership Status</label>
+                <select
+                  value={formData.status}
+                  onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                  className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-700 rounded-lg dark:bg-slate-800 capitalize"
+                >
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive / Archived</option>
+                  <option value="deceased">Deceased</option>
+                </select>
+              </div>
+            )}
+
             {editMember ? (
               <div className="sm:col-span-2 bg-amber-50/70 dark:bg-amber-950/40 p-3.5 rounded-xl border border-amber-200 dark:border-amber-800/80 space-y-2 mt-2">
                 <div className="flex items-center justify-between">
@@ -791,6 +842,43 @@ export function AdminMembers() {
               className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-700 rounded-lg dark:bg-slate-800"
             />
           </div>
+
+          {editMember && (
+            <div className="bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
+                  <Heart className="w-3.5 h-3.5 text-rose-500" />
+                  <span>Dependent Coverage (0 to 20)</span>
+                </label>
+                <span className="text-[11px] text-slate-500">
+                  Registered member is covered automatically
+                </span>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                {COVERAGE_KEYS.map((key) => (
+                  <div key={key} className="flex items-center justify-between p-2 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800">
+                    <span className="text-xs font-medium capitalize text-slate-700 dark:text-slate-300">{key}</span>
+                    <input
+                      type="number"
+                      min="0"
+                      max="20"
+                      value={formData.coverage?.[key] || 0}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          coverage: {
+                            ...formData.coverage,
+                            [key]: Math.max(0, Math.min(20, parseInt(e.target.value) || 0)),
+                          },
+                        })
+                      }
+                      className="w-12 px-1.5 py-1 text-xs text-center font-mono border border-slate-300 dark:border-slate-700 rounded bg-slate-50 dark:bg-slate-800"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="flex justify-end gap-2 pt-4 border-t border-slate-100 dark:border-slate-800">
             <Button variant="outline" onClick={() => { setShowAddDialog(false); setEditMember(null); }}>

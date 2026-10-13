@@ -529,6 +529,47 @@ export const payments = {
       payment_date: paymentData.payment_date || paymentData.date
     };
   },
+  edit: async (paymentId, paymentData) => {
+    const targetId = extractId(paymentId);
+    const amountVal = Number(paymentData.amount);
+    const dateVal = paymentData.payment_date || paymentData.date;
+    const execVal = paymentData.executive_id || paymentData.executiveId || null;
+    const noteVal = paymentData.note ? paymentData.note.trim() : null;
+
+    // Try RPC first
+    try {
+      const { error: rpcErr } = await supabase.rpc('edit_payment', {
+        p_payment_id: targetId,
+        p_amount: amountVal,
+        p_payment_date: dateVal,
+        p_executive_id: execVal,
+        p_note: noteVal,
+      });
+      if (!rpcErr) {
+        return { id: targetId, ...paymentData, amount: amountVal };
+      }
+    } catch {
+      // Fall through to direct table update
+    }
+
+    const { data, error } = await supabase
+      .from('payments')
+      .update({
+        amount: amountVal,
+        payment_date: dateVal,
+        executive_id: execVal,
+        note: noteVal,
+      })
+      .eq('id', targetId)
+      .select()
+      .single();
+
+    if (error) throw new Error(error.message);
+    return data;
+  },
+  update: async (paymentId, data) => {
+    return payments.edit(paymentId, data);
+  },
   reverse: async (paymentId, reason) => {
     const targetId = extractId(paymentId);
     const { data, error } = await supabase.rpc('reverse_payment', {

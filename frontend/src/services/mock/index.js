@@ -607,6 +607,40 @@ export const payments = {
     return paymentRow;
   },
 
+  async edit(paymentId, { amount, date, executiveId = null, note = '' }) {
+    await delay();
+    const store = getStore();
+    const p = store.payments.find((item) => item.id === paymentId);
+    if (!p) throw { code: 'VALIDATION', message: 'Payment record not found.' };
+
+    if (p.type === 'reversal') {
+      throw { code: 'VALIDATION', message: 'Cannot edit a reversal transaction directly.' };
+    }
+
+    const numAmount = Number(amount);
+    if (!numAmount || numAmount <= 0) {
+      throw { code: 'AMOUNT_INVALID', message: 'Payment amount must be greater than 0.' };
+    }
+
+    const oldAmount = p.amount;
+    p.amount = numAmount;
+    if (date) p.payment_date = date;
+    p.executive_id = executiveId || null;
+    p.note = note ? note.trim() : '';
+
+    writeAudit(
+      store,
+      'PAYMENT_EDITED',
+      `Admin edited payment #${p.id}: amount changed from Rs. ${oldAmount} to Rs. ${numAmount}.`
+    );
+    saveStore(store);
+    return p;
+  },
+
+  async update(paymentId, data) {
+    return this.edit(paymentId, data);
+  },
+
   async reverse(paymentId, reason) {
     await delay();
     const store = getStore();
