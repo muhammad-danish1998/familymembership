@@ -470,22 +470,22 @@ export function AdminSettings() {
                 </Button>
               </div>
 
-              <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-200 dark:border-slate-700">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-200 dark:border-slate-700">
                 <div>
                   <span className="font-bold text-sm block">Export Payments CSV</span>
                   <span className="text-xs text-slate-500">Download payment transaction history</span>
                 </div>
-                <Button variant="outline" size="sm" onClick={handleExportPayments}>
+                <Button variant="outline" size="sm" onClick={handleExportPayments} className="w-full sm:w-auto justify-center">
                   <Download className="w-4 h-4" /> Payments CSV
                 </Button>
               </div>
 
-              <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-200 dark:border-slate-700">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-200 dark:border-slate-700">
                 <div>
                   <span className="font-bold text-sm block">Full System JSON Backup</span>
                   <span className="text-xs text-slate-500">Complete database snapshot (members, payments, settings)</span>
                 </div>
-                <Button variant="primary" size="sm" onClick={handleExportBackup}>
+                <Button variant="primary" size="sm" onClick={handleExportBackup} className="w-full sm:w-auto justify-center">
                   <Download className="w-4 h-4" /> Download JSON
                 </Button>
               </div>
@@ -496,16 +496,16 @@ export function AdminSettings() {
                   type="file"
                   accept=".json"
                   onChange={handleRestoreJson}
-                  className="text-xs text-amber-900 dark:text-amber-200 file:mr-4 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-amber-600 file:text-white hover:file:bg-amber-700 cursor-pointer"
+                  className="text-xs text-amber-900 dark:text-amber-200 file:mr-4 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-amber-600 file:text-white hover:file:bg-amber-700 cursor-pointer w-full"
                 />
               </div>
 
-              <div className="p-4 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-xl flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-xl">
                 <div>
                   <span className="font-bold text-sm text-rose-900 dark:text-rose-200 block">Clear Sample Data (Start Fresh)</span>
                   <span className="text-xs text-rose-700 dark:text-rose-300">Wipe sample members & payments to begin entering your actual fund data</span>
                 </div>
-                <Button variant="danger" size="sm" onClick={() => setShowClearConfirm(true)}>
+                <Button variant="danger" size="sm" onClick={() => setShowClearConfirm(true)} className="w-full sm:w-auto justify-center">
                   <Trash2 className="w-4 h-4" /> Clear All Data
                 </Button>
               </div>
@@ -529,27 +529,44 @@ export function AdminSettings() {
             {auditLoading ? (
               <LoadingSpinner text="Loading audit log..." />
             ) : (
-              <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden text-xs">
-                <table className="w-full text-left rtl:text-right">
-                  <thead className="bg-slate-50 dark:bg-slate-800 font-semibold border-b border-slate-100 dark:border-slate-800">
-                    <tr>
-                      <th className="p-3">Timestamp</th>
-                      <th className="p-3">Actor</th>
-                      <th className="p-3">Action</th>
-                      <th className="p-3">Detail</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                    {auditLogs.map((log) => (
-                      <tr key={log.id}>
-                        <td className="p-3 font-mono text-slate-500"><DateDisplay date={log.created_at} /></td>
-                        <td className="p-3 font-semibold text-slate-800 dark:text-slate-200">{log.actor}</td>
-                        <td className="p-3 font-mono text-emerald-600 dark:text-emerald-400">{log.action}</td>
-                        <td className="p-3 text-slate-600 dark:text-slate-300">{log.detail}</td>
+              <div>
+                {/* Desktop Audit Log Table */}
+                <div className="hidden md:block border border-slate-200 dark:border-slate-800 rounded-xl overflow-x-auto text-xs">
+                  <table className="w-full text-left rtl:text-right">
+                    <thead className="bg-slate-50 dark:bg-slate-800 font-semibold border-b border-slate-100 dark:border-slate-800">
+                      <tr>
+                        <th className="p-3">Timestamp</th>
+                        <th className="p-3">Actor</th>
+                        <th className="p-3">Action</th>
+                        <th className="p-3">Detail</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                      {auditLogs.map((log) => (
+                        <tr key={log.id}>
+                          <td className="p-3 font-mono text-slate-500 whitespace-nowrap"><DateDisplay date={log.created_at} /></td>
+                          <td className="p-3 font-semibold text-slate-800 dark:text-slate-200 whitespace-nowrap">{log.actor}</td>
+                          <td className="p-3 font-mono text-emerald-600 dark:text-emerald-400 whitespace-nowrap">{log.action}</td>
+                          <td className="p-3 text-slate-600 dark:text-slate-300">{log.detail}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Mobile Audit Log Cards */}
+                <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden text-xs">
+                  {auditLogs.map((log) => (
+                    <div key={log.id} className="p-3.5 space-y-1.5 bg-white dark:bg-slate-900">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 text-[11px]">{log.action}</span>
+                        <span className="font-mono text-slate-400 text-[10px]"><DateDisplay date={log.created_at} /></span>
+                      </div>
+                      <div className="text-slate-700 dark:text-slate-300 text-xs leading-relaxed">{log.detail}</div>
+                      <div className="text-[10px] text-slate-400 font-medium">By: {log.actor}</div>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>

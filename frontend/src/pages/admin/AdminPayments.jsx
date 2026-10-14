@@ -210,54 +210,131 @@ export function AdminPayments() {
         ) : items.length === 0 ? (
           <EmptyState title="No payments recorded" description="Click 'Record Payment' to enter a contribution." />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left rtl:text-right">
-              <thead className="bg-slate-50 dark:bg-slate-800 text-xs text-slate-500 uppercase font-semibold border-b border-slate-100 dark:border-slate-800">
-                <tr>
-                  <th className="px-6 py-3">Transaction ID</th>
-                  <th className="px-6 py-3">{t('memberName')}</th>
-                  <th className="px-6 py-3">{t('amount')}</th>
-                  <th className="px-6 py-3">{t('date')}</th>
-                  <th className="px-6 py-3">Received By</th>
-                  <th className="px-6 py-3">{t('notes')}</th>
-                  <th className="px-6 py-3 text-right rtl:text-left">{t('actions')}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {items.map((p) => (
-                  <tr key={p.id} className={`hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors ${p.type === 'reversal' ? 'bg-rose-50/40 dark:bg-rose-950/20' : ''}`}>
-                    <td className="px-6 py-4 font-mono text-xs text-slate-500">#{p.id}</td>
-                    <td className="px-6 py-4 font-semibold text-slate-900 dark:text-white">{p.member_name}</td>
-                    <td className="px-6 py-4 font-mono font-semibold">
-                      <MoneyDisplay amount={p.amount} negative={p.type === 'reversal'} />
-                      {p.is_reversed && (
-                        <span className="ml-2 px-2 py-0.5 rounded text-[10px] bg-amber-100 text-amber-800 font-sans">Reversed</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 text-xs text-slate-600 dark:text-slate-400"><DateDisplay date={p.payment_date} /></td>
-                    <td className="px-6 py-4 text-xs text-slate-600 dark:text-slate-400">{p.received_by}</td>
-                    <td className="px-6 py-4 text-xs text-slate-500 truncate max-w-xs">{p.note || '—'}</td>
-                    <td className="px-6 py-4 text-right rtl:text-left space-x-1 rtl:space-x-reverse">
-                      {p.type === 'payment' && (
-                        <>
-                          <Button variant="ghost" size="sm" onClick={() => openEditPayment(p)} title="Edit Payment">
-                            <Edit className="w-4 h-4 text-sky-600 dark:text-sky-400" />
-                          </Button>
-                          <Button variant="ghost" size="sm" onClick={() => openReceipt(p.id)} title="View Receipt">
-                            <Receipt className="w-4 h-4 text-emerald-600" />
-                          </Button>
-                          {!p.is_reversed && (
-                            <Button variant="ghost" size="sm" onClick={() => setReversePaymentId(p.id)} title="Reverse Payment">
-                              <RotateCcw className="w-4 h-4 text-rose-500" />
-                            </Button>
-                          )}
-                        </>
-                      )}
-                    </td>
+          <div>
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-sm text-left rtl:text-right">
+                <thead className="bg-slate-50 dark:bg-slate-800 text-xs text-slate-500 uppercase font-semibold border-b border-slate-100 dark:border-slate-800">
+                  <tr>
+                    <th className="px-6 py-3">Transaction ID</th>
+                    <th className="px-6 py-3">{t('memberName')}</th>
+                    <th className="px-6 py-3">{t('amount')}</th>
+                    <th className="px-6 py-3">{t('date')}</th>
+                    <th className="px-6 py-3">Received By</th>
+                    <th className="px-6 py-3">{t('notes')}</th>
+                    <th className="px-6 py-3 text-right rtl:text-left">{t('actions')}</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                  {items.map((p) => (
+                    <tr key={p.id} className={`hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors ${p.type === 'reversal' ? 'bg-rose-50/40 dark:bg-rose-950/20' : ''}`}>
+                      <td className="px-6 py-4 font-mono text-xs text-slate-500">#{p.id}</td>
+                      <td className="px-6 py-4 font-semibold text-slate-900 dark:text-white">{p.member_name}</td>
+                      <td className="px-6 py-4 font-mono font-semibold">
+                        <MoneyDisplay amount={p.amount} negative={p.type === 'reversal'} />
+                        {p.is_reversed && (
+                          <span className="ml-2 px-2 py-0.5 rounded text-[10px] bg-amber-100 text-amber-800 font-sans">Reversed</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-xs text-slate-600 dark:text-slate-400"><DateDisplay date={p.payment_date} /></td>
+                      <td className="px-6 py-4 text-xs text-slate-600 dark:text-slate-400">{p.received_by}</td>
+                      <td className="px-6 py-4 text-xs text-slate-500 truncate max-w-xs">{p.note || '—'}</td>
+                      <td className="px-6 py-4 text-right rtl:text-left space-x-1 rtl:space-x-reverse">
+                        {p.type === 'payment' && (
+                          <>
+                            <Button variant="ghost" size="sm" onClick={() => openEditPayment(p)} title="Edit Payment">
+                              <Edit className="w-4 h-4 text-sky-600 dark:text-sky-400" />
+                            </Button>
+                            <Button variant="ghost" size="sm" onClick={() => openReceipt(p.id)} title="View Receipt">
+                              <Receipt className="w-4 h-4 text-emerald-600" />
+                            </Button>
+                            {!p.is_reversed && (
+                              <Button variant="ghost" size="sm" onClick={() => setReversePaymentId(p.id)} title="Reverse Payment">
+                                <RotateCcw className="w-4 h-4 text-rose-500" />
+                              </Button>
+                            )}
+                          </>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Native Card View */}
+            <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800">
+              {items.map((p) => (
+                <div
+                  key={p.id}
+                  className={`p-4 space-y-3 ${p.type === 'reversal' ? 'bg-rose-50/40 dark:bg-rose-950/20' : ''}`}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <div className="font-bold text-base text-slate-900 dark:text-white">{p.member_name}</div>
+                      <div className="text-xs text-slate-500 font-mono">Txn #{p.id} · <DateDisplay date={p.payment_date} /></div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-mono font-bold text-base">
+                        <MoneyDisplay amount={p.amount} negative={p.type === 'reversal'} />
+                      </div>
+                      {p.is_reversed && (
+                        <span className="inline-block mt-0.5 px-2 py-0.5 rounded text-[10px] bg-amber-100 text-amber-800 font-semibold">
+                          Reversed
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="p-2.5 bg-slate-50 dark:bg-slate-800/60 rounded-xl text-xs flex items-center justify-between">
+                    <div>
+                      <span className="text-slate-400 block text-[11px]">Received By</span>
+                      <span className="font-semibold text-slate-700 dark:text-slate-300">{p.received_by || 'Admin Directly'}</span>
+                    </div>
+                    {p.note && (
+                      <div className="text-right max-w-[55%]">
+                        <span className="text-slate-400 block text-[11px]">Note / Ref</span>
+                        <span className="text-slate-600 dark:text-slate-400 truncate block">{p.note}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {p.type === 'payment' && (
+                    <div className="flex items-center gap-2 pt-1">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openEditPayment(p)}
+                        className="flex-1 text-sky-600 border-sky-200 dark:border-sky-800 justify-center font-semibold text-xs"
+                      >
+                        <Edit className="w-3.5 h-3.5 mr-1 rtl:mr-0 rtl:ml-1" />
+                        Edit
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openReceipt(p.id)}
+                        className="flex-1 text-emerald-600 border-emerald-200 dark:border-emerald-800 justify-center font-semibold text-xs"
+                      >
+                        <Receipt className="w-3.5 h-3.5 mr-1 rtl:mr-0 rtl:ml-1" />
+                        Receipt
+                      </Button>
+                      {!p.is_reversed && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setReversePaymentId(p.id)}
+                          className="text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 px-2.5"
+                          title="Reverse Payment"
+                        >
+                          <RotateCcw className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
@@ -352,9 +429,9 @@ export function AdminPayments() {
             />
           </div>
 
-          <div className="flex justify-end gap-2 pt-4 border-t border-slate-100 dark:border-slate-800">
-            <Button variant="outline" onClick={() => setShowAddDialog(false)}>{t('cancel')}</Button>
-            <Button variant="primary" type="submit" loading={submitting}>{t('save')}</Button>
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-4 border-t border-slate-100 dark:border-slate-800">
+            <Button variant="outline" className="w-full sm:w-auto justify-center" onClick={() => setShowAddDialog(false)}>{t('cancel')}</Button>
+            <Button variant="primary" type="submit" className="w-full sm:w-auto justify-center" loading={submitting}>{t('save')}</Button>
           </div>
         </form>
       </Dialog>
@@ -425,11 +502,11 @@ export function AdminPayments() {
               />
             </div>
 
-            <div className="flex justify-end gap-2 pt-4 border-t border-slate-100 dark:border-slate-800">
-              <Button variant="outline" type="button" onClick={() => setEditPayment(null)}>
+            <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-4 border-t border-slate-100 dark:border-slate-800">
+              <Button variant="outline" type="button" className="w-full sm:w-auto justify-center" onClick={() => setEditPayment(null)}>
                 {t('cancel')}
               </Button>
-              <Button variant="primary" type="submit" loading={editSubmitting}>
+              <Button variant="primary" type="submit" className="w-full sm:w-auto justify-center" loading={editSubmitting}>
                 Save Changes
               </Button>
             </div>
@@ -454,9 +531,9 @@ export function AdminPayments() {
               required
             />
           </div>
-          <div className="flex justify-end gap-2 pt-4 border-t border-slate-100 dark:border-slate-800">
-            <Button variant="outline" onClick={() => setReversePaymentId(null)}>{t('cancel')}</Button>
-            <Button variant="danger" type="submit" loading={submitting}>Confirm Reversal</Button>
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-4 border-t border-slate-100 dark:border-slate-800">
+            <Button variant="outline" className="w-full sm:w-auto justify-center" onClick={() => setReversePaymentId(null)}>{t('cancel')}</Button>
+            <Button variant="danger" type="submit" className="w-full sm:w-auto justify-center" loading={submitting}>Confirm Reversal</Button>
           </div>
         </form>
       </Dialog>
@@ -469,8 +546,8 @@ export function AdminPayments() {
               <pre className="whitespace-pre-wrap font-sans text-slate-800 dark:text-slate-200">{receiptData.textEn}</pre>
             </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-              <Button variant="outline" size="sm" onClick={() => handleCopyText(receiptData.textEn)}>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-2 border-t border-slate-100 dark:border-slate-800">
+              <Button variant="outline" size="sm" className="w-full sm:w-auto justify-center" onClick={() => handleCopyText(receiptData.textEn)}>
                 {copied ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
                 {copied ? t('copied') : t('copy')} Text
               </Button>
@@ -479,7 +556,7 @@ export function AdminPayments() {
                 href={receiptData.whatsappUrlEn}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors shadow-xs"
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors shadow-xs w-full sm:w-auto text-center"
               >
                 <MessageSquare className="w-4 h-4" />
                 Share via WhatsApp

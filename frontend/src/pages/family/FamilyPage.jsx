@@ -133,7 +133,7 @@ export function FamilyPage() {
   if (!token) {
     return (
       <div className="min-h-[70vh] flex items-center justify-center p-4">
-        <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 p-8 text-center space-y-6">
+        <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 p-6 sm:p-8 text-center space-y-6">
           <div className="w-14 h-14 bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center mx-auto shadow-inner">
             <Lock className="w-7 h-7" />
           </div>
@@ -207,51 +207,51 @@ export function FamilyPage() {
 
       {/* Fund Summary Stat Cards (BR-24) */}
       {summary && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs flex items-center justify-between">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          <div className="bg-white dark:bg-slate-900 p-3.5 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs flex items-center justify-between">
             <div>
-              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">{t('totalCollected')}</span>
-              <MoneyDisplay amount={summary.collected} className="text-2xl font-bold text-slate-900 dark:text-white mt-1" />
-              <span className="text-[11px] text-slate-500 block mt-1">Still to collect: <MoneyDisplay amount={summary.stillToCollect || 0} /></span>
+              <span className="text-[11px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wider block truncate">{t('totalCollected')}</span>
+              <MoneyDisplay amount={summary.collected} className="text-lg sm:text-2xl font-bold text-slate-900 dark:text-white mt-0.5 sm:mt-1 block" />
+              <span className="text-[10px] sm:text-[11px] text-slate-500 block mt-0.5 sm:mt-1 truncate">Still: <MoneyDisplay amount={summary.stillToCollect || 0} /></span>
             </div>
-            <div className="p-3 bg-emerald-50 dark:bg-emerald-950 text-emerald-600 rounded-xl">
-              <TrendingUp className="w-6 h-6" />
+            <div className="p-2 sm:p-3 bg-emerald-50 dark:bg-emerald-950 text-emerald-600 rounded-xl shrink-0">
+              <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
           </div>
 
-          <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs flex items-center justify-between">
+          <div className="bg-white dark:bg-slate-900 p-3.5 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs flex items-center justify-between">
             <div>
-              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">{t('totalPaidOut')}</span>
-              <MoneyDisplay amount={summary.paidOut} className="text-2xl font-bold text-slate-900 dark:text-white mt-1" />
-              <span className="text-[11px] text-slate-500 block mt-1">{summary.paidCasesCount || 0} death case(s) supported</span>
+              <span className="text-[11px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wider block truncate">{t('totalPaidOut')}</span>
+              <MoneyDisplay amount={summary.paidOut} className="text-lg sm:text-2xl font-bold text-slate-900 dark:text-white mt-0.5 sm:mt-1 block" />
+              <span className="text-[10px] sm:text-[11px] text-slate-500 block mt-0.5 sm:mt-1 truncate">{summary.paidCasesCount || 0} death case(s)</span>
             </div>
-            <div className="p-3 bg-rose-50 dark:bg-rose-950 text-rose-600 rounded-xl">
-              <HeartHandshake className="w-6 h-6" />
+            <div className="p-2 sm:p-3 bg-rose-50 dark:bg-rose-950 text-rose-600 rounded-xl shrink-0">
+              <HeartHandshake className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
           </div>
 
-          <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs flex items-center justify-between">
+          <div className="bg-white dark:bg-slate-900 p-3.5 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs flex items-center justify-between">
             <div>
-              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">{t('fundBalance')}</span>
+              <span className="text-[11px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wider block truncate">{t('fundBalance')}</span>
               <MoneyDisplay
                 amount={summary.balance}
                 highlight
-                className="text-2xl font-bold mt-1"
+                className="text-lg sm:text-2xl font-bold mt-0.5 sm:mt-1 block"
               />
             </div>
-            <div className="p-3 bg-emerald-50 dark:bg-emerald-950 text-emerald-600 rounded-xl">
-              <Lock className="w-6 h-6" />
+            <div className="p-2 sm:p-3 bg-emerald-50 dark:bg-emerald-950 text-emerald-600 rounded-xl shrink-0">
+              <Lock className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
           </div>
 
-          <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs flex items-center justify-between">
+          <div className="bg-white dark:bg-slate-900 p-3.5 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs flex items-center justify-between">
             <div>
-              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">{t('activeMembers')}</span>
-              <span className="text-2xl font-bold text-slate-900 dark:text-white mt-1 block">{summary.activeMembersCount}</span>
-              <span className="text-[11px] text-slate-500 block mt-1">{summary.fullyPaidCount || 0} fully paid · {summary.behindCount || 0} behind</span>
+              <span className="text-[11px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wider block truncate">{t('activeMembers')}</span>
+              <span className="text-lg sm:text-2xl font-bold text-slate-900 dark:text-white mt-0.5 sm:mt-1 block">{summary.activeMembersCount}</span>
+              <span className="text-[10px] sm:text-[11px] text-slate-500 block mt-0.5 sm:mt-1 truncate">{summary.fullyPaidCount || 0} paid · {summary.behindCount || 0} behind</span>
             </div>
-            <div className="p-3 bg-sky-50 dark:bg-sky-950 text-sky-600 rounded-xl">
-              <Users className="w-6 h-6" />
+            <div className="p-2 sm:p-3 bg-sky-50 dark:bg-sky-950 text-sky-600 rounded-xl shrink-0">
+              <Users className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
           </div>
         </div>
@@ -613,7 +613,7 @@ export function FamilyPage() {
               {selectedMember.payments.length === 0 ? (
                 <p className="text-xs text-slate-400 italic">No payment transactions recorded yet.</p>
               ) : (
-                <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden text-xs">
+                <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-x-auto text-xs">
                   <table className="w-full text-left rtl:text-right">
                     <thead className="bg-slate-50 dark:bg-slate-800 text-slate-500 font-semibold border-b border-slate-100 dark:border-slate-800">
                       <tr>

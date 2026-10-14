@@ -83,44 +83,44 @@ export function AdminDashboard() {
       )}
 
       {/* Overview Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs flex items-center justify-between">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className="bg-white dark:bg-slate-900 p-3.5 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs flex items-center justify-between">
           <div>
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">{t('totalCollected')}</span>
-            <MoneyDisplay amount={summary.collected} className="text-2xl font-bold text-slate-900 dark:text-white mt-1" />
+            <span className="text-[11px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wider block truncate">{t('totalCollected')}</span>
+            <MoneyDisplay amount={summary.collected} className="text-lg sm:text-2xl font-bold text-slate-900 dark:text-white mt-0.5 sm:mt-1 block" />
           </div>
-          <div className="p-3 bg-emerald-50 dark:bg-emerald-950 text-emerald-600 rounded-xl">
-            <TrendingUp className="w-6 h-6" />
+          <div className="p-2 sm:p-3 bg-emerald-50 dark:bg-emerald-950 text-emerald-600 rounded-xl shrink-0">
+            <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs flex items-center justify-between">
+        <div className="bg-white dark:bg-slate-900 p-3.5 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs flex items-center justify-between">
           <div>
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">{t('totalPaidOut')}</span>
-            <MoneyDisplay amount={summary.paidOut} className="text-2xl font-bold text-slate-900 dark:text-white mt-1" />
+            <span className="text-[11px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wider block truncate">{t('totalPaidOut')}</span>
+            <MoneyDisplay amount={summary.paidOut} className="text-lg sm:text-2xl font-bold text-slate-900 dark:text-white mt-0.5 sm:mt-1 block" />
           </div>
-          <div className="p-3 bg-rose-50 dark:bg-rose-950 text-rose-600 rounded-xl">
-            <HeartHandshake className="w-6 h-6" />
+          <div className="p-2 sm:p-3 bg-rose-50 dark:bg-rose-950 text-rose-600 rounded-xl shrink-0">
+            <HeartHandshake className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs flex items-center justify-between">
+        <div className="bg-white dark:bg-slate-900 p-3.5 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs flex items-center justify-between">
           <div>
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">{t('fundBalance')}</span>
-            <MoneyDisplay amount={summary.balance} highlight className="text-2xl font-bold mt-1" />
+            <span className="text-[11px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wider block truncate">{t('fundBalance')}</span>
+            <MoneyDisplay amount={summary.balance} highlight className="text-lg sm:text-2xl font-bold mt-0.5 sm:mt-1 block" />
           </div>
-          <div className="p-3 bg-emerald-50 dark:bg-emerald-950 text-emerald-600 rounded-xl">
-            <Lock className="w-6 h-6" />
+          <div className="p-2 sm:p-3 bg-emerald-50 dark:bg-emerald-950 text-emerald-600 rounded-xl shrink-0">
+            <Lock className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs flex items-center justify-between">
+        <div className="bg-white dark:bg-slate-900 p-3.5 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs flex items-center justify-between">
           <div>
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">{t('activeMembers')}</span>
-            <span className="text-2xl font-bold text-slate-900 dark:text-white mt-1 block">{summary.activeMembersCount}</span>
+            <span className="text-[11px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wider block truncate">{t('activeMembers')}</span>
+            <span className="text-lg sm:text-2xl font-bold text-slate-900 dark:text-white mt-0.5 sm:mt-1 block">{summary.activeMembersCount}</span>
           </div>
-          <div className="p-3 bg-sky-50 dark:bg-sky-950 text-sky-600 rounded-xl">
-            <Users className="w-6 h-6" />
+          <div className="p-2 sm:p-3 bg-sky-50 dark:bg-sky-950 text-sky-600 rounded-xl shrink-0">
+            <Users className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
         </div>
       </div>

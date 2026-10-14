@@ -33,7 +33,7 @@ export function AdminLogin() {
 
   return (
     <div className="min-h-[70vh] flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 p-8 space-y-6">
+      <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 p-6 sm:p-8 space-y-6">
         <div className="text-center space-y-2">
           <div className="w-14 h-14 bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center mx-auto shadow-inner">
             <ShieldCheck className="w-7 h-7" />
@@ -53,10 +53,10 @@ export function AdminLogin() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="admin@example.com"
-                className="w-full pl-9 pr-4 py-2.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full ps-9 pe-4 py-2.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 required
               />
-              <Mail className="w-4 h-4 absolute left-3 top-3 text-slate-400 pointer-events-none" />
+              <Mail className="w-4 h-4 absolute start-3 top-3 text-slate-400 pointer-events-none" />
             </div>
           </div>
 
@@ -70,10 +70,10 @@ export function AdminLogin() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full pl-9 pr-4 py-2.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full ps-9 pe-4 py-2.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 required
               />
-              <Lock className="w-4 h-4 absolute left-3 top-3 text-slate-400 pointer-events-none" />
+              <Lock className="w-4 h-4 absolute start-3 top-3 text-slate-400 pointer-events-none" />
             </div>
           </div>
 

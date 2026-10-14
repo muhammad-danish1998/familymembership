@@ -149,7 +149,9 @@ export function AdminDeathSupport() {
         ) : items.length === 0 ? (
           <EmptyState title="No death cases registered" description="Click 'Register Death Case' to submit a new family support case." />
         ) : (
-          <div className="overflow-x-auto">
+          <div>
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-sm text-left rtl:text-right">
               <thead className="bg-slate-50 dark:bg-slate-800 text-xs text-slate-500 uppercase font-semibold border-b border-slate-100 dark:border-slate-800">
                 <tr>
@@ -199,7 +201,58 @@ export function AdminDeathSupport() {
               </tbody>
             </table>
           </div>
-        )}
+
+          {/* Mobile Native Card View */}
+          <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800">
+            {items.map((c) => (
+              <div key={c.id} className="p-4 space-y-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <span className="font-mono text-xs font-bold text-slate-500">{c.ref}</span>
+                    <h4 className="font-bold text-base text-slate-900 dark:text-white mt-0.5">{c.deceased_name}</h4>
+                  </div>
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold capitalize ${
+                    c.status === 'paid' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' : c.status === 'verified' ? 'bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300' : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
+                  }`}>
+                    {c.status}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 p-2.5 bg-slate-50 dark:bg-slate-800/60 rounded-xl text-xs">
+                  <div>
+                    <span className="text-slate-400 block text-[11px]">Member & Relation</span>
+                    <span className="font-semibold text-slate-800 dark:text-slate-200 block truncate">{c.member_name}</span>
+                    <span className="text-slate-500 capitalize text-[10px]">({c.relation})</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[11px]">Date & Amount</span>
+                    <DateDisplay date={c.death_date} className="font-medium text-slate-700 dark:text-slate-300 block" />
+                    <MoneyDisplay amount={c.amount} className="font-mono font-bold text-emerald-600 block text-xs" />
+                  </div>
+                </div>
+
+                {/* Mobile Actions */}
+                {(c.status === 'registered' || c.status === 'verified') && (
+                  <div className="pt-1">
+                    {c.status === 'registered' && (
+                      <Button variant="outline" size="sm" onClick={() => handleVerify(c.id)} className="w-full justify-center text-sky-600 border-sky-200">
+                        <CheckCircle className="w-4 h-4 mr-1.5" />
+                        Verify Death Case
+                      </Button>
+                    )}
+                    {c.status === 'verified' && (
+                      <Button variant="primary" size="sm" onClick={() => openReleaseModal(c)} className="w-full justify-center">
+                        <HeartHandshake className="w-4 h-4 mr-1.5" />
+                        Release Rs. 70,000 Payout
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       </div>
 
       {/* Register Death Case Dialog */}
@@ -255,9 +308,9 @@ export function AdminDeathSupport() {
             />
           </div>
 
-          <div className="flex justify-end gap-2 pt-4 border-t border-slate-100 dark:border-slate-800">
-            <Button variant="outline" onClick={() => setShowRegisterDialog(false)}>{t('cancel')}</Button>
-            <Button variant="primary" type="submit" loading={submitting}>Register Case</Button>
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-4 border-t border-slate-100 dark:border-slate-800">
+            <Button variant="outline" className="w-full sm:w-auto justify-center" onClick={() => setShowRegisterDialog(false)}>{t('cancel')}</Button>
+            <Button variant="primary" type="submit" className="w-full sm:w-auto justify-center" loading={submitting}>Register Case</Button>
           </div>
         </form>
       </Dialog>
@@ -299,9 +352,9 @@ export function AdminDeathSupport() {
               />
             </div>
 
-            <div className="flex justify-end gap-2 pt-4 border-t border-slate-100 dark:border-slate-800">
-              <Button variant="outline" onClick={() => setReleaseCase(null)}>{t('cancel')}</Button>
-              <Button variant="primary" type="submit" loading={submitting}>Confirm & Release Rs. 70,000</Button>
+            <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-4 border-t border-slate-100 dark:border-slate-800">
+              <Button variant="outline" className="w-full sm:w-auto justify-center" onClick={() => setReleaseCase(null)}>{t('cancel')}</Button>
+              <Button variant="primary" type="submit" className="w-full sm:w-auto justify-center" loading={submitting}>Confirm & Release Rs. 70,000</Button>
             </div>
           </form>
         )}

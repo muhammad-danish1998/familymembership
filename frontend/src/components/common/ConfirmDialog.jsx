@@ -26,11 +26,11 @@ export function ConfirmDialog({
           </p>
         </div>
 
-        <div className="flex items-center justify-end gap-2 pt-4 mt-2 border-t border-slate-100 dark:border-slate-800">
-          <Button variant="outline" onClick={onClose} disabled={loading}>
+        <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-4 mt-2 border-t border-slate-100 dark:border-slate-800">
+          <Button variant="outline" onClick={onClose} disabled={loading} className="w-full sm:w-auto justify-center">
             {cancelText}
           </Button>
-          <Button variant={variant} onClick={onConfirm} loading={loading}>
+          <Button variant={variant} onClick={onConfirm} loading={loading} className="w-full sm:w-auto justify-center">
             {confirmText}
           </Button>
         </div>

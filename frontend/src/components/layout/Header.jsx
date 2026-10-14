@@ -66,7 +66,7 @@ export function Header() {
               <HeartHandshake className="w-5 h-5" />
             </div>
             <div>
-              <span className="font-bold text-base sm:text-lg tracking-tight text-slate-900 dark:text-white block">
+              <span className="font-bold text-sm sm:text-base md:text-lg tracking-tight text-slate-900 dark:text-white block truncate max-w-[150px] xs:max-w-[190px] sm:max-w-none">
                 {t('appTitle')}
               </span>
               <span className="text-[11px] text-slate-500 dark:text-slate-400 block -mt-1 hidden sm:block">
@@ -137,7 +137,7 @@ export function Header() {
           )}
 
           {/* Right Controls */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             {/* Read-Only Badge on Family Pages */}
             {!isAdminArea && (
               <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 rounded-full border border-emerald-200 dark:border-emerald-800">
@@ -151,10 +151,10 @@ export function Header() {
               variant="outline"
               size="sm"
               onClick={toggleLanguage}
-              className="font-bold gap-1 px-2.5 text-xs sm:text-sm"
+              className="font-bold gap-1 px-2 sm:px-2.5 text-xs sm:text-sm"
               title="Switch Language / زبان تبدیل کریں"
             >
-              <Globe className="w-4 h-4 text-emerald-600" />
+              <Globe className="w-4 h-4 text-emerald-600 shrink-0" />
               <span>{lang === 'en' ? 'اردو' : 'English'}</span>
             </Button>
 
@@ -172,9 +172,10 @@ export function Header() {
             ) : (
               !isAdminArea && (
                 <Link to="/admin/login">
-                  <Button variant="ghost" size="sm" className="px-2.5 text-xs sm:text-sm">
-                    <Shield className="w-4 h-4 text-slate-500" />
-                    <span>{t('navAdminLogin')}</span>
+                  <Button variant="ghost" size="sm" className="px-2 sm:px-2.5 text-xs sm:text-sm">
+                    <Shield className="w-4 h-4 text-slate-500 shrink-0" />
+                    <span className="hidden sm:inline">{t('navAdminLogin')}</span>
+                    <span className="sm:hidden">Admin</span>
                   </Button>
                 </Link>
               )

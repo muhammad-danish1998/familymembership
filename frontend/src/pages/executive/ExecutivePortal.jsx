@@ -599,7 +599,9 @@ export function ExecutivePortal() {
               )}
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div>
+              {/* Desktop Table View */}
+              <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-xs text-left rtl:text-right">
                 <thead className="bg-slate-950 text-slate-400 uppercase font-semibold border-b border-slate-800">
                   <tr>
@@ -706,7 +708,104 @@ export function ExecutivePortal() {
                 </tbody>
               </table>
             </div>
-          )}
+
+            {/* Mobile Native Card View */}
+            <div className="md:hidden divide-y divide-slate-800/80">
+              {filteredMembers.map((m) => {
+                const isUnapproved = m.approval_status === 'pending' || m.approval_status === 'rejected';
+                const paidAmt = m.summary?.paid || 0;
+                const remAmt = m.summary?.remaining || 0;
+                const covSummary = formatCoverageSummary(m.coverage);
+
+                return (
+                  <div
+                    key={m.id}
+                    className={`p-4 space-y-3 ${isUnapproved ? 'bg-rose-500/5' : ''}`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <h4 className="font-bold text-base text-slate-100">{m.name}</h4>
+                        <p className="text-xs text-slate-400">
+                          S/o {m.father_name} · <a href={`tel:${m.mobile}`} className="font-mono text-emerald-400 hover:underline">{formatMobile(m.mobile)}</a>
+                        </p>
+                      </div>
+
+                      {/* Approval Status */}
+                      {isUnapproved ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-rose-500/20 text-rose-300 border border-rose-500/40 shrink-0">
+                          <AlertTriangle className="w-3 h-3 text-rose-400" />
+                          {isRtl ? 'زیر التواء' : 'Pending'}
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shrink-0">
+                          <ShieldCheck className="w-3 h-3 text-emerald-400" />
+                          {isRtl ? 'منظور شدہ' : 'Approved'}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Coverage badge */}
+                    <div className="text-xs">
+                      <span className="text-slate-400 text-[11px]">{isRtl ? 'کفالت: ' : 'Coverage: '}</span>
+                      <span className="font-semibold text-emerald-400">
+                        {covSummary || (isRtl ? 'خود (1 فرد)' : 'Self Only')}
+                      </span>
+                    </div>
+
+                    {/* Financial Stats */}
+                    <div className="grid grid-cols-2 gap-2 p-2.5 bg-slate-950/80 rounded-xl text-xs border border-slate-800">
+                      <div>
+                        <span className="text-slate-400 block text-[11px]">{isRtl ? 'ادا شدہ' : 'Total Paid'}</span>
+                        <MoneyDisplay amount={paidAmt} className="font-bold text-emerald-400 text-sm" />
+                      </div>
+                      <div>
+                        <span className="text-slate-400 block text-[11px]">{isRtl ? 'بقایا واجبات' : 'Remaining Dues'}</span>
+                        <MoneyDisplay amount={remAmt} className="font-bold text-slate-200 text-sm" />
+                      </div>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="space-y-2 pt-1">
+                      <button
+                        onClick={() => handleOpenRecordPayment(m)}
+                        className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl transition shadow-md text-xs flex items-center justify-center gap-1.5"
+                      >
+                        <CreditCard className="w-4 h-4" />
+                        <span>{isRtl ? 'رقم جمع کریں' : 'Record Payment'}</span>
+                      </button>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleOpenEditModal(m)}
+                          className="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-sky-400 font-semibold rounded-xl transition text-xs flex items-center justify-center gap-1 border border-slate-700"
+                        >
+                          <Edit className="w-3.5 h-3.5" />
+                          <span>{isRtl ? 'معلومات' : 'Edit'}</span>
+                        </button>
+
+                        <button
+                          onClick={() => handleOpenCoverageModal(m)}
+                          className="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-rose-400 font-semibold rounded-xl transition text-xs flex items-center justify-center gap-1 border border-slate-700"
+                        >
+                          <Heart className="w-3.5 h-3.5" />
+                          <span>{isRtl ? 'کفالت' : 'Coverage'}</span>
+                        </button>
+
+                        <button
+                          onClick={() => setHistoryModalMember(m)}
+                          className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl transition text-xs flex items-center justify-center border border-slate-700"
+                          title={isRtl ? 'ہسٹری' : 'History'}
+                        >
+                          <History className="w-4 h-4 text-slate-400" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
         </div>
       )}
 

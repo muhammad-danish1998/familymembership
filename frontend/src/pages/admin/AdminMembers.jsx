@@ -633,24 +633,34 @@ export function AdminMembers() {
                     </div>
 
                     {/* Actions Grid for Mobile */}
-                    <div className="flex items-center gap-2 pt-1">
-                      <Button variant="outline" size="sm" className="flex-1 font-semibold" onClick={() => openEdit(m)}>
-                        <Edit className="w-3.5 h-3.5 mr-1" />
-                        Edit
+                    <div className="flex items-center gap-2 pt-1 flex-wrap">
+                      <Button variant="outline" size="sm" className="flex-1 font-semibold justify-center text-xs" onClick={() => openEdit(m)}>
+                        <Edit className="w-3.5 h-3.5 mr-1 rtl:mr-0 rtl:ml-1" />
+                        Edit Profile
                       </Button>
-                      <Button variant="outline" size="sm" className="flex-1 font-semibold text-rose-600 border-rose-200" onClick={() => openCoverage(m)}>
-                        <Heart className="w-3.5 h-3.5 mr-1" />
+                      <Button variant="outline" size="sm" className="flex-1 font-semibold text-rose-600 border-rose-200 dark:border-rose-900/60 justify-center text-xs" onClick={() => openCoverage(m)}>
+                        <Heart className="w-3.5 h-3.5 mr-1 rtl:mr-0 rtl:ml-1" />
                         Dependents
                       </Button>
+                      {m.status === 'deceased' && !m.continued_by && (
+                        <Button variant="outline" size="sm" className="w-full justify-center text-xs font-semibold" onClick={() => openContinue(m)}>
+                          Continue Family
+                        </Button>
+                      )}
                       {m.status === 'active' && (
-                        <Button variant="ghost" size="sm" onClick={() => handleToggleStatus(m)}>
+                        <Button variant="ghost" size="sm" onClick={() => handleToggleStatus(m)} title="Deactivate / Archive Member">
                           <UserX className="w-4 h-4 text-slate-400" />
                         </Button>
                       )}
                       {m.status === 'inactive' && (
-                        <Button variant="ghost" size="sm" onClick={() => handleToggleStatus(m)}>
-                          <UserCheck className="w-4 h-4 text-emerald-600" />
-                        </Button>
+                        <>
+                          <Button variant="ghost" size="sm" onClick={() => handleToggleStatus(m)} title="Restore Member">
+                            <UserCheck className="w-4 h-4 text-emerald-600" />
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => setDeleteMemberConfirm(m)} title="Delete Member">
+                            <Trash2 className="w-4 h-4 text-rose-600" />
+                          </Button>
+                        </>
                       )}
                     </div>
                   </div>
@@ -880,11 +890,11 @@ export function AdminMembers() {
             </div>
           )}
 
-          <div className="flex justify-end gap-2 pt-4 border-t border-slate-100 dark:border-slate-800">
-            <Button variant="outline" onClick={() => { setShowAddDialog(false); setEditMember(null); }}>
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-4 border-t border-slate-100 dark:border-slate-800">
+            <Button variant="outline" className="w-full sm:w-auto justify-center" onClick={() => { setShowAddDialog(false); setEditMember(null); }}>
               {t('cancel')}
             </Button>
-            <Button variant="primary" type="submit" loading={submitting}>
+            <Button variant="primary" type="submit" className="w-full sm:w-auto justify-center" loading={submitting}>
               {t('save')}
             </Button>
           </div>
@@ -944,11 +954,11 @@ export function AdminMembers() {
               </div>
             ))}
           </div>
-          <div className="flex justify-end gap-2 pt-4 border-t border-slate-100 dark:border-slate-800">
-            <Button variant="outline" onClick={() => setCoverageMember(null)}>
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-4 border-t border-slate-100 dark:border-slate-800">
+            <Button variant="outline" className="w-full sm:w-auto justify-center" onClick={() => setCoverageMember(null)}>
               {t('cancel')}
             </Button>
-            <Button variant="primary" onClick={handleSaveCoverage} loading={submitting}>
+            <Button variant="primary" className="w-full sm:w-auto justify-center" onClick={handleSaveCoverage} loading={submitting}>
               Save Coverage
             </Button>
           </div>
@@ -977,7 +987,7 @@ export function AdminMembers() {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold mb-1">{t('mobile')} *</label>
               <input
@@ -1001,11 +1011,11 @@ export function AdminMembers() {
             </div>
           </div>
 
-          <div className="flex justify-end gap-2 pt-4 border-t border-slate-100 dark:border-slate-800">
-            <Button variant="outline" onClick={() => setContinueMember(null)}>
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-4 border-t border-slate-100 dark:border-slate-800">
+            <Button variant="outline" className="w-full sm:w-auto justify-center" onClick={() => setContinueMember(null)}>
               {t('cancel')}
             </Button>
-            <Button variant="primary" type="submit" loading={submitting}>
+            <Button variant="primary" type="submit" className="w-full sm:w-auto justify-center" loading={submitting}>
               Register Successor
             </Button>
           </div>
